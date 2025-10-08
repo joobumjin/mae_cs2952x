@@ -37,9 +37,6 @@ def get_args_parser():
     parser.add_argument('--model', default="mae_vit_base_patch16", type=str, metavar='MODEL',
                         help='Name of model to train')
 
-    parser.add_argument('--input_size', default=224, type=int,
-                        help='images input size')
-
     parser.add_argument('--mask_ratio', default=0.75, type=float,
                         help='Masking ratio (percentage of removed patches).')
 
@@ -50,27 +47,8 @@ def get_args_parser():
     # Optimizer parameters
     parser.add_argument('--weight_decay', type=float, default=0.05,
                         help='weight decay (default: 0.05)')
-
-    parser.add_argument('--lr', type=float, default=None, metavar='LR',
-                        help='learning rate (absolute lr)')
-    parser.add_argument('--blr', type=float, default=1e-3, metavar='LR',
-                        help='base learning rate: absolute_lr = base_lr * total_batch_size / 256')
-    parser.add_argument('--min_lr', type=float, default=0., metavar='LR',
-                        help='lower lr bound for cyclic schedulers that hit 0')
-    parser.add_argument('--accum_iter', default=1, type=int,
-                        help='Accumulate gradient iterations (for increasing the effective batch size under memory constraints)')
-    parser.add_argument('--warmup_epochs', type=int, default=40, metavar='N',
-                        help='epochs to warmup LR')
     
-    parser.add_argument('--num_workers', default=10, type=int)
-    parser.add_argument('--pin_mem', action='store_true',
-                        help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
-    parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
-    parser.set_defaults(pin_mem=True)
-
-    # distributed training parameters
-    parser.add_argument('--world_size', default=1, type=int,
-                        help='number of distributed processes')
+    parser.add_argument('--save_path', default="users/bjoo2/data/bjoo2/mae/weights")
     return parser
 
 # --------------------------------------------------------
@@ -87,8 +65,6 @@ def train_one_epoch(model: torch.nn.Module,
                     args=None):
     model.train(True)
 
-    accum_iter = args.accum_iter
-
     optimizer.zero_grad()
 
     metrics = {"Train Loss": misc.SmoothedValue(), "lr": misc.SmoothedValue()}
@@ -97,8 +73,7 @@ def train_one_epoch(model: torch.nn.Module,
         samples = samples["image"]
 
         # we use a per iteration (instead of per epoch) lr scheduler
-        if data_iter_step % accum_iter == 0:
-            lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args)
+        lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args)
 
         samples = samples.to(device, non_blocking=True)
 
@@ -111,11 +86,9 @@ def train_one_epoch(model: torch.nn.Module,
             print("Loss is {}, stopping training".format(loss_value))
             sys.exit(1)
 
-        loss /= accum_iter
-        loss_scaler(loss, optimizer, parameters=model.parameters(),
-                    update_grad=(data_iter_step + 1) % accum_iter == 0)
-        if (data_iter_step + 1) % accum_iter == 0:
-            optimizer.zero_grad()
+        loss_scaler(loss, optimizer, parameters=model.parameters(), update_grad=True)
+
+        optimizer.zero_grad()
 
         torch.cuda.synchronize()
 
@@ -123,6 +96,25 @@ def train_one_epoch(model: torch.nn.Module,
 
         lr = optimizer.param_groups[0]["lr"]
         metrics["lr"].update(lr)
+
+    # gather the stats from all processes
+    # for key in metrics: metrics[key].synchronize_between_processes()
+    return {k: meter.global_avg for k, meter in metrics.items()}
+
+def test(model: torch.nn.Module, data_loader: Iterable, device: torch.device, args=None):
+    
+    model.eval()
+
+    metrics = {"Test Loss": misc.SmoothedValue()}
+
+    for samples in data_loader:
+        samples = samples["image"]
+        samples = samples.to(device, non_blocking=True)
+
+        with torch.no_grad():
+            loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
+
+        metrics["Test Loss"].update(loss)
 
     # gather the stats from all processes
     # for key in metrics: metrics[key].synchronize_between_processes()
@@ -145,10 +137,14 @@ def main(args):
         "cache_dir": args.data_path
     }
     train_loader = get_train_loader(**loader_args)
-    # test_loader = get_test_loader(**loader_args)
+    test_loader = get_test_loader(**loader_args)
     
-    
-    model = models_mae.__dict__[args.model](img_size = 256, norm_pix_loss=args.norm_pix_loss)
+    model_args = {
+        "img_size": 256,
+        "norm_pix_loss":args.norm_pix_loss
+    }
+
+    model = models_mae.__dict__[args.model](**model_args)
     model.to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
@@ -175,6 +171,20 @@ def main(args):
                                       args=args)
         
         run.log(train_stats)
+
+        postfix = train_stats
+
+        if epoch % 20 == 0:
+            test_stats = test(model, test_loader, device, args=args)
+            run.log(test_stats)
+
+            postfix = {**train_stats, **test_stats}
+
+        pbar.set_postfix(postfix)
+
+    torch.save({"model_args": model_args,
+                "model_state_dict": model.state_dict()},
+                f"{args.save_path}/mae_base_200e")
 
         
 
