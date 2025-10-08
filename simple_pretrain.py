@@ -29,7 +29,7 @@ def get_args_parser():
     
     parser.add_argument('--batch_size', default=32)
     parser.add_argument('--data_path', default="users/bjoo2/data/bjoo2/mae")
-    parser.add_argument('--epochs', default=400, type=int)
+    parser.add_argument('--epochs', default=200, type=int)
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=0, type=int)
@@ -131,7 +131,6 @@ def train_one_epoch(model: torch.nn.Module,
 # --------------------------------------------------------
 
 def main(args):
-    misc.init_distributed_mode(args)
     device = torch.device(args.device)
 
     # fix the seed for reproducibility
