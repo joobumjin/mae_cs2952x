@@ -15,6 +15,7 @@ import numpy as np
 import os
 import time
 from pathlib import Path
+from tqdm import trange
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -90,7 +91,7 @@ def get_args_parser():
     parser.add_argument('--pin_mem', action='store_true',
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
-    parser.set_defaults(pin_mem=True)
+    parser.set_defaults(pin_mem=False)
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -184,7 +185,9 @@ def main(args):
 
     print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
-    for epoch in range(args.start_epoch, args.epochs):
+
+    pbar = trange(args.start_epoch, args.epochs, desc = "Training Epochs", postfix = {})
+    for epoch in pbar:
         if args.distributed:
             data_loader_train.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
@@ -206,6 +209,8 @@ def main(args):
                 log_writer.flush()
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
+        
+        pbar.set_postfix(log_stats)
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
