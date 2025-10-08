@@ -99,7 +99,7 @@ def train_one_epoch(model: torch.nn.Module,
 
         torch.cuda.synchronize()
 
-        metrics["Train Loss"].update(loss)
+        metrics["Train Loss"].update(loss_value)
 
         lr = optimizer.param_groups[0]["lr"]
         metrics["lr"].update(lr)
