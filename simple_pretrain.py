@@ -86,6 +86,7 @@ def train_one_epoch(model: torch.nn.Module,
     metrics = {"Train Loss": misc.SmoothedValue(), "lr": misc.SmoothedValue()}
 
     for data_iter_step, samples in enumerate(data_loader):
+        samples = samples["image"]
 
         # we use a per iteration (instead of per epoch) lr scheduler
         if data_iter_step % accum_iter == 0:
