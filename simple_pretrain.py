@@ -141,12 +141,12 @@ def main(args):
     model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
     model.to(device)
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.blr, betas=(0.9, 0.95))
     loss_scaler = NativeScaler()
     
     config = {
         "Model": args.model,
-        "lr": args.lr,
+        "lr": args.blr,
         **loader_args
     }
 
