@@ -12,11 +12,11 @@ import os
 import PIL
 
 from torchvision import transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 import torch
 from datasets import load_dataset
 
-
+import util.misc as misc
 
 
 def t_func(data, transformation):
@@ -34,6 +34,7 @@ def collate(data):
     return {"images": images, "labels": labels}
 
 def get_train_loader(batch_size, cache_dir = ""):
+    
     train = load_dataset("matthieulel/galaxy10_decals", split="train", cache_dir = cache_dir)
 
     transform_train = transforms.Compose([transforms.RandomResizedCrop(256, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
@@ -44,8 +45,34 @@ def get_train_loader(batch_size, cache_dir = ""):
 
     train = train.with_transform(lambda data: t_func(data, transform_train))
 
-
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
+    
+    return train_loader
+
+def get_train_loader_dist(batch_size, world_size, rank, cache_dir = ""):
+    
+    train = load_dataset("matthieulel/galaxy10_decals", split="train", cache_dir = cache_dir)
+
+    sampler_train = DistributedSampler(train, 
+                                       num_replicas=world_size, 
+                                       rank=rank, 
+                                       shuffle=True)
+
+    transform_train = transforms.Compose([transforms.RandomResizedCrop(256, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
+                                          transforms.RandomHorizontalFlip(),
+                                          transforms.ToTensor(),
+                                          transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+
+
+    train = train.with_transform(lambda data: t_func(data, transform_train))
+
+    train_loader = DataLoader(
+        train, 
+        batch_size=batch_size,
+        sampler=sampler_train,
+        shuffle = True,
+    )
+    
     return train_loader
 
 def get_test_loader(batch_size, cache_dir = ""):

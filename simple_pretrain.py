@@ -14,7 +14,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 import timm
-import timm.optim.optim_factory as optim_factory
+# import timm.optim.optim_factory as optim_factory
 
 import wandb
 
@@ -62,6 +62,15 @@ def get_args_parser():
     parser.add_argument('--warmup_epochs', type=int, default=40, metavar='N',
                         help='epochs to warmup LR')
     
+    parser.add_argument('--num_workers', default=10, type=int)
+    parser.add_argument('--pin_mem', action='store_true',
+                        help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
+    parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
+    parser.set_defaults(pin_mem=True)
+
+    # distributed training parameters
+    parser.add_argument('--world_size', default=1, type=int,
+                        help='number of distributed processes')
     return parser
 
 # --------------------------------------------------------
@@ -69,7 +78,6 @@ import math
 import sys
 from typing import Iterable
 
-import util.misc as misc
 import util.lr_sched as lr_sched
 
 
@@ -123,6 +131,7 @@ def train_one_epoch(model: torch.nn.Module,
 # --------------------------------------------------------
 
 def main(args):
+    misc.init_distributed_mode(args)
     device = torch.device(args.device)
 
     # fix the seed for reproducibility
