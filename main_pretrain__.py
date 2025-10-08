@@ -15,17 +15,16 @@ import numpy as np
 import os
 import time
 from pathlib import Path
-from tqdm import trange
 
 import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-from datasets import load_dataset
 
 import timm
 
+assert timm.__version__ == "0.3.2"  # version check
 import timm.optim.optim_factory as optim_factory
 
 import util.misc as misc
@@ -38,7 +37,6 @@ from engine_pretrain import train_one_epoch
 
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE pre-training', add_help=False)
-    parser.add_argument('--data_path', default="users/bjoo2/data/bjoo2/mae")
     parser.add_argument('--batch_size', default=64, type=int,
                         help='Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus')
     parser.add_argument('--epochs', default=400, type=int)
@@ -49,7 +47,7 @@ def get_args_parser():
     parser.add_argument('--model', default='mae_vit_large_patch16', type=str, metavar='MODEL',
                         help='Name of model to train')
 
-    parser.add_argument('--input_size', default=256, type=int,
+    parser.add_argument('--input_size', default=224, type=int,
                         help='images input size')
 
     parser.add_argument('--mask_ratio', default=0.75, type=float,
@@ -74,6 +72,8 @@ def get_args_parser():
                         help='epochs to warmup LR')
 
     # Dataset parameters
+    parser.add_argument('--data_path', default='/datasets01/imagenet_full_size/061417/', type=str,
+                        help='dataset path')
 
     parser.add_argument('--output_dir', default='./output_dir',
                         help='path where to save, empty for no saving')
@@ -91,7 +91,7 @@ def get_args_parser():
     parser.add_argument('--pin_mem', action='store_true',
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
-    parser.set_defaults(pin_mem=False)
+    parser.set_defaults(pin_mem=True)
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -120,12 +120,12 @@ def main(args):
     cudnn.benchmark = True
 
     # simple augmentation
-    transform_train = transforms.Compose([transforms.RandomResizedCrop(256, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
-                                          transforms.RandomHorizontalFlip(),
-                                          transforms.ToTensor(),
-                                          transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-    
-    dataset_train = load_dataset("matthieulel/galaxy10_decals", split="train", cache_dir = args.data_path)
+    transform_train = transforms.Compose([
+            transforms.RandomResizedCrop(args.input_size, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
     print(dataset_train)
 
     if True:  # args.distributed:
@@ -153,7 +153,7 @@ def main(args):
     )
     
     # define the model
-    model = models_mae.__dict__[args.model](img_size = 256, norm_pix_loss=args.norm_pix_loss)
+    model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
 
     model.to(device)
 
@@ -185,9 +185,7 @@ def main(args):
 
     print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
-
-    pbar = trange(args.start_epoch, args.epochs, desc = "Training Epochs", postfix = {})
-    for epoch in pbar:
+    for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             data_loader_train.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
@@ -209,8 +207,6 @@ def main(args):
                 log_writer.flush()
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
-        
-        pbar.set_postfix(log_stats)
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
