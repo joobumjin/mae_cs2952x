@@ -47,8 +47,13 @@ def get_args_parser():
     # Optimizer parameters
     parser.add_argument('--weight_decay', type=float, default=0.05,
                         help='weight decay (default: 0.05)')
+
     parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
                         help='learning rate (absolute lr)')
+    parser.add_argument('--min_lr', type=float, default=0., metavar='LR',
+                        help='lower lr bound for cyclic schedulers that hit 0')
+    parser.add_argument('--warmup_epochs', type=int, default=40, metavar='N',
+                        help='epochs to warmup LR')
     
     parser.add_argument('--save_path', default="users/bjoo2/data/bjoo2/mae/weights")
     return parser
