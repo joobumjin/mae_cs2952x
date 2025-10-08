@@ -140,7 +140,7 @@ def main(args):
     # test_loader = get_test_loader(**loader_args)
     
     
-    model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
+    model = models_mae.__dict__[args.model](img_size = 256, norm_pix_loss=args.norm_pix_loss)
     model.to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
