@@ -69,7 +69,6 @@ import torch.distributed as dist
 from torch.utils.data import Dataset
 from torch.utils.data.distributed import DistributedSampler
 import torch.multiprocessing as mp
-from torchvision.models import vgg16
 
 import utils
 
@@ -119,7 +118,7 @@ from util.data import t_func
 
 
 def train_ddp_worker(
-    rank: int, model, optimizer, world_size: int, stats_queue: mp.Queue, args, epoch,
+    rank: int, model, world_size: int, stats_queue: mp.Queue, args, epoch, 
     cores_per_rank: int = 1, batch_size: int = 32, learning_rate: float = 1e-2,
 ):
     
@@ -156,8 +155,14 @@ def train_ddp_worker(
         sampler=sampler_train,
         shuffle = True,
     )
-    
-    
+
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, betas=(0.9, 0.95))
+    # loss_scaler = NativeScaler()
+
+    model = model.to(device)
+    model = DistributedDataParallel(model, device)
+    model.model.eval()
+
     # broadcast model
     utils.debug_print(f"Rank {rank}: Broadcasting model to all ranks")
     model.broadcast_params()
@@ -199,7 +204,7 @@ def train_ddp_worker(
     utils.parallel_cleanup()
 
 def train_ddp(
-    args, epoch, model, optimizer, world_size: int = 1, batch_size: int = 32,
+    args, epoch, model, world_size: int = 1, batch_size: int = 32,
     learning_rate: float = 1e-2, cores_per_rank: int = 1, 
 ) -> dict:
     """
@@ -220,7 +225,7 @@ def train_ddp(
     stats_queue = mp.Queue()
     mp.spawn(
         train_ddp_worker, 
-        args=(model, optimizer, world_size, stats_queue, args, epoch,
+        args=(model, world_size, stats_queue, args, epoch,
             cores_per_rank, batch_size, learning_rate), 
         nprocs=world_size, join=True
     )
@@ -241,17 +246,6 @@ def main(args):
     # model = models_mae.__dict__[args.model](img_size = 256, norm_pix_loss=args.norm_pix_loss)
     # model.to(device)
     
-    model = models_mae.__dict__[args.model](img_size = 256, norm_pix_loss=args.norm_pix_loss)
-    model.to(device)
-
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.blr, betas=(0.9, 0.95))
-    # loss_scaler = NativeScaler()
-
-    model = model.to(device)
-    model = DistributedDataParallel(model, device)
-    model.model.eval()
-
-
     config = {
         "Model": args.model,
         "lr": args.lr,
@@ -266,13 +260,15 @@ def main(args):
         config=config
     )
 
+    model = models_mae.__dict__[args.model](img_size = 256, norm_pix_loss=args.norm_pix_loss)
+    model.to(device)
+
     print(f"Start training for {args.epochs} epochs")
     pbar = trange(0, args.epochs, desc="Training Epochs", postfix={})
     for epoch in pbar:
         stats = train_ddp(args = args, 
                           epoch = epoch, 
                           model = model,
-                          optimizer = optimizer,
                           world_size = args.world_size, 
                           batch_size = args.batch_size,
                           learning_rate = args.blr, 
