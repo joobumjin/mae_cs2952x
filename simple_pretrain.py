@@ -47,6 +47,8 @@ def get_args_parser():
     # Optimizer parameters
     parser.add_argument('--weight_decay', type=float, default=0.05,
                         help='weight decay (default: 0.05)')
+    parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
+                        help='learning rate (absolute lr)')
     
     parser.add_argument('--save_path', default="users/bjoo2/data/bjoo2/mae/weights")
     return parser
