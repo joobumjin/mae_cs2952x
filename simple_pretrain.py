@@ -32,6 +32,7 @@ def get_args_parser():
     parser.add_argument('--epochs', default=400, type=int)
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
+    parser.add_argument('--seed', default=0, type=int)
     # Model parameters
     parser.add_argument('--model', default="mae_vit_base_patch16", type=str, metavar='MODEL',
                         help='Name of model to train')
