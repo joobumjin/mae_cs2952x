@@ -36,7 +36,7 @@ def get_shared_folder() -> Path:
         p = Path(f"users/bjoo2/data/bjoo2/mae/checkpoint/bjoo2/experiments")
         p.mkdir(exist_ok=True)
         return p
-    raise RuntimeError(f"No shared folder available {}")
+    raise RuntimeError(f"No shared folder available")
 
 
 def get_init_file():
