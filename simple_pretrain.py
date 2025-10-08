@@ -30,7 +30,8 @@ def get_args_parser():
     parser.add_argument('--batch_size', default=32)
     parser.add_argument('--data_path', default="users/bjoo2/data/bjoo2/mae")
     parser.add_argument('--epochs', default=400, type=int)
-
+    parser.add_argument('--device', default='cuda',
+                        help='device to use for training / testing')
     # Model parameters
     parser.add_argument('--model', default="mae_vit_base_patch16", type=str, metavar='MODEL',
                         help='Name of model to train')
