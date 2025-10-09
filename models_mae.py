@@ -249,7 +249,7 @@ def mae_vit_huge_patch14_dec512d8b(**kwargs):
 class LinearProbe(torch.nn.Module):
     def __init__(self, in_dim = 1024, out_dim = 10, num_layers = 3, moco_init = 0, pre_bn = 0):
         super().__init__()
-        num_patches = 257
+        num_patches = 1
         self.input_dim = in_dim
         self.output_dim = out_dim
 
