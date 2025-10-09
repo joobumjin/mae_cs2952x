@@ -165,8 +165,9 @@ def objective(trial, args, model, model_args):
 
     pbar = trange(0, args.epochs, desc="Probe Training Epochs", postfix={})
     for _ in pbar:
-        train_stats = train_one_epoch(model, train_loader,
-                                      optimizer, device)
+        train_stats = train_one_epoch(model, probe, 
+                                      train_loader, optimizer, 
+                                      device)
         test_stats = test(model, test_loader, device)
 
         postfix = {**train_stats, **test_stats}
