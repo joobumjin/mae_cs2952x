@@ -151,6 +151,7 @@ def main(args):
 
     model = models_mae.__dict__[model_dict[args.model]](**model_args)
 
+    print(f"saving test model")
     torch.save({"model_str": model_dict[args.model],
                 "model_args": model_args,
                 "model_state_dict": model.state_dict()},
