@@ -1,24 +1,17 @@
 import argparse
-import math
-import sys
 from typing import Iterable
 import numpy as np
 from tqdm import trange
 
 import torch
-from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
-
-import timm
-# import timm.optim.optim_factory as optim_factory
 
 import wandb
 import optuna
 
 import util.misc as misc
 import util.lr_sched as lr_sched
+from util.lars import LARS
 from util.data import get_train_loader, get_test_loader
 
 import models_mae
@@ -32,22 +25,10 @@ def get_args_parser():
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=0, type=int)
     # Model parameters
-    parser.add_argument('--model', default="mae_vit_base_patch16", type=str, metavar='MODEL',
-                        help='Name of model to train')
-
-    parser.add_argument('--mask_ratio', default=0.75, type=float,
-                        help='Masking ratio (percentage of removed patches).')
-
-    parser.add_argument('--norm_pix_loss', action='store_true',
-                        help='Use (per-patch) normalized pixels as targets for computing loss')
-    parser.set_defaults(norm_pix_loss=False)
 
     # Optimizer parameters
     parser.add_argument('--weight_decay', type=float, default=0.05,
                         help='weight decay (default: 0.05)')
-
-    parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
-                        help='learning rate (absolute lr)')
     
     parser.add_argument('--save_path', default="users/bjoo2/data/bjoo2/mae/weights")
     parser.add_argument('--save_file', default="mae_large_scaled_50e")
@@ -63,6 +44,8 @@ def load_model(save_fp):
     model = model_class(**model_args)
 
     model.load_state_dict(checkpoint["model_state_dict"])
+
+    model_args["size"] = model_str
     
     return model, model_args
 
@@ -121,7 +104,7 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
 
-def objective(trial, args, model):
+def objective(trial, args, model, model_args):
     device = torch.device(args.device)
 
     # fix the seed for reproducibility
@@ -140,21 +123,43 @@ def objective(trial, args, model):
 
     model.to(device)
 
-    probe = models_mae.LinearProbe(10)
+    input_shapes = {"base": 768, "large": 1024, "huge": 1280}
+
+    probe_args = {
+        "in_dim": input_shapes[model_args["size"]],
+        "out_dim": 10,
+        "num_layers": 3, # trial.suggest_int("probe layers", 1, 3),
+        "moco_init": 0, #trial.suggest_int("mocov3-esque init", 0, 1),
+        "pre_bn": 0, #trial.suggest_int("pre_batchnorm", 0, 1),
+    }
+    probe = models_mae.LinearProbe(**probe_args)
     probe.to(device)
 
-    optimizer = torch.optim.AdamW(probe.parameters(), lr=args.lr, betas=(0.9, 0.95))
-    
+    opts = {
+        "AdamW": (torch.optim.AdamW, {"betas": (0.9, 0.95)}),
+        "LARS": (LARS, {"weight_decay": args.weight_decay})
+    }
+
+    opt_args = {
+        "lr": 1e-3, # trial.suggest_float("learning_rate", 1e-4, 3e-3, step=1e-4),
+        "optimizer": "AdamW", #trial.suggest_categorical("optimizer type", opts.keys())
+    }
+
     config = {
         "Model": args.model,
-        "lr": args.lr,
-        **loader_args
+        **opt_args,
+        **loader_args, 
+        **probe_args,
+        **model_args
     }
+
+    (opt_class, misc_args) = opts["optimizer"]
+    optimizer = opt_class(probe.parameters(), lr=opt_args["lr"], **misc_args)
 
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE FineTune", 
-        name=f"Test MAE - {args.model} ViT", 
+        name=f"Test MAE - {model_args["size"]} ViT, {opts["optimizer"]}", 
         config=config
     )
 
@@ -172,14 +177,14 @@ def objective(trial, args, model):
 
 
 def main(args):
-    model = load_model(f"{args.save_path}/{args.save_file}")
+    model, model_args = load_model(f"{args.save_path}/{args.save_file}")
 
     # study = optuna.create_study(study_name=f"mae_probe", direction="minimize")
-    # study.set_metric_names(["RMSE"])
+    # study.set_metric_names(["Test Accuracy"])
 
-    # study.optimize(lambda trial: objective(trial, args, model), n_trials=10)
+    # study.optimize(lambda trial: objective(trial, args, model, model_args), n_trials=15)
     # print(f"Best value: {study.best_value} (params: {study.best_params})")
-    _ = objective(None, args, model)
+    _ = objective(None, args, model, model_args)
 
 
 if __name__ == '__main__':

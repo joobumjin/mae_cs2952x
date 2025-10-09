@@ -15,6 +15,7 @@ import torch
 import torch.nn as nn
 
 from timm.models.vision_transformer import PatchEmbed, Block
+from timm.models.layers import trunc_normal_
 
 from util.pos_embed import get_2d_sincos_pos_embed
 
@@ -246,16 +247,34 @@ def mae_vit_huge_patch14_dec512d8b(**kwargs):
     return model
 
 class LinearProbe(torch.nn.Module):
-    def __init__(self, out_dim):
+    def __init__(self, in_dim = 1024, out_dim = 10, num_layers = 3, moco_init = 0, pre_bn = 0):
         super().__init__()
 
+        self.input_dim = in_dim
         self.output_dim = out_dim
-        self.linear = nn.Sequential(nn.Linear(1024, 128),
-                                    nn.LeakyReLU(),
-                                    nn.Linear(128, 32),
-                                    nn.LeakyReLU(),
-                                    nn.Linear(32, self.output_dim),
-                                    nn.Softmax(dim = -1))
+
+        # i know its a silly way to do it, but with a small model
+        # and not much flexibility around hidden sizes, i just 
+        # dont want to bother
+        first_emb = 128
+        second_emb = 32
+
+        layers = [] if pre_bn == 0 else [torch.nn.BatchNorm1d(self.input_dim, affine=False, eps=1e-6)]
+        if num_layers <= 1: layers += [nn.Linear(self.input_dim, self.output_dim)]
+        else:
+            layers += [nn.Linear(self.input_dim, first_emb), nn.LeakyReLU()]
+            if num_layers == 2:
+                layers += [nn.Linear(first_emb, self.output_dim)]
+            else:
+                layers += [nn.Linear(first_emb, second_emb), 
+                           nn.LeakyReLU(),
+                           nn.Linear(32, self.output_dim)]
+        
+        if moco_init:
+            for layer in layers: 
+                if (isinstance(layer, nn.Linear)): trunc_normal_(layer.weight, std=0.01)
+
+        self.linear = nn.Sequential(*layers, nn.Softmax(dim = -1))
         
         self.cce_loss = nn.CrossEntropyLoss()
 
