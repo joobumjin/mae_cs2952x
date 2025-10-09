@@ -152,7 +152,7 @@ def objective(trial, args, model, model_args):
         **model_args
     }
 
-    (opt_class, misc_args) = opts["optimizer"]
+    (opt_class, misc_args) = opts[opt_args["optimizer"]]
     optimizer = opt_class(probe.parameters(), lr=opt_args["lr"], **misc_args)
 
     run = wandb.init(
