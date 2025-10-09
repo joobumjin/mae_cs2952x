@@ -245,6 +245,29 @@ def mae_vit_huge_patch14_dec512d8b(**kwargs):
         mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     return model
 
+class LinearProbe(torch.nn.Module):
+    def __init__(self, out_dim):
+        super().__init__()
+
+        self.output_dim = out_dim
+        self.linear = nn.Sequential(nn.Linear(1024, 128),
+                                    nn.LeakyReLU(),
+                                    nn.Linear(128, 32),
+                                    nn.LeakyReLU(),
+                                    nn.Linear(32, self.output_dim),
+                                    nn.Softmax(dim = -1))
+        
+        self.cce_loss = nn.CrossEntropyLoss()
+
+    def pred(self, data):
+        x = self.linear(data.x)
+
+        return x
+
+    def forward(self, embeds, labels):
+        preds = self.pred(embeds)
+        
+        return self.cce_loss(preds, labels), preds
 
 # set recommended archs
 mae_vit_base_patch16 = mae_vit_base_patch16_dec512d8b  # decoder: 512 dim, 8 blocks

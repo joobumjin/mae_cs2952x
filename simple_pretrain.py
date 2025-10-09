@@ -1,10 +1,8 @@
 import argparse
-import datetime
-import json
+import math
+import sys
+from typing import Iterable
 import numpy as np
-import os
-import time
-from pathlib import Path
 from tqdm import trange
 
 import torch
@@ -19,6 +17,7 @@ import timm
 import wandb
 
 import util.misc as misc
+import util.lr_sched as lr_sched
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
 from util.data import get_train_loader, get_test_loader
 
@@ -29,12 +28,12 @@ def get_args_parser():
     
     parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--data_path', default="users/bjoo2/data/bjoo2/mae")
-    parser.add_argument('--epochs', default=200, type=int)
+    parser.add_argument('--epochs', default=50, type=int)
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=0, type=int)
     # Model parameters
-    parser.add_argument('--model', default="mae_vit_base_patch16", type=str, metavar='MODEL',
+    parser.add_argument('--model', default="base", type=str, metavar='MODEL',
                         help='Name of model to train')
 
     parser.add_argument('--mask_ratio', default=0.75, type=float,
@@ -59,16 +58,11 @@ def get_args_parser():
     return parser
 
 # --------------------------------------------------------
-import math
-import sys
-from typing import Iterable
-
-import util.lr_sched as lr_sched
 
 
 def train_one_epoch(model: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int, loss_scaler,
+                    device: torch.device, epoch: int,
                     args=None):
     model.train(True)
 
@@ -84,8 +78,7 @@ def train_one_epoch(model: torch.nn.Module,
 
         samples = samples.to(device, non_blocking=True)
 
-        with torch.amp.autocast('cuda'):
-            loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
+        loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
 
         loss_value = loss.item()
 
@@ -93,7 +86,7 @@ def train_one_epoch(model: torch.nn.Module,
             print("Loss is {}, stopping training".format(loss_value))
             sys.exit(1)
 
-        loss_scaler(loss, optimizer, parameters=model.parameters(), update_grad=True)
+        loss.backward()
 
         optimizer.zero_grad()
 
@@ -105,7 +98,6 @@ def train_one_epoch(model: torch.nn.Module,
         metrics["lr"].update(lr)
 
     # gather the stats from all processes
-    # for key in metrics: metrics[key].synchronize_between_processes()
     return {k: meter.global_avg for k, meter in metrics.items()}
 
 def test(model: torch.nn.Module, data_loader: Iterable, device: torch.device, args=None):
@@ -121,10 +113,9 @@ def test(model: torch.nn.Module, data_loader: Iterable, device: torch.device, ar
         with torch.no_grad():
             loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
 
-        metrics["Test Loss"].update(loss)
+        metrics["Test Loss"].update(loss.item())
 
     # gather the stats from all processes
-    # for key in metrics: metrics[key].synchronize_between_processes()
     return {k: meter.global_avg for k, meter in metrics.items()}
 
 # --------------------------------------------------------
@@ -151,11 +142,16 @@ def main(args):
         "norm_pix_loss":args.norm_pix_loss
     }
 
-    model = models_mae.__dict__[args.model](**model_args)
+    model_dict = {
+        "base": "mae_vit_base_patch16",
+        "large": "mae_vit_large_patch16",
+        "huge": "mae_vit_huge_patch14"
+    }
+
+    model = models_mae.__dict__[model_dict[args.model]](**model_args)
     model.to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
-    loss_scaler = NativeScaler()
     
     config = {
         "Model": args.model,
@@ -166,7 +162,7 @@ def main(args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"mae-test", 
-        name=f"Base MAE", 
+        name=f"MAE - {args.model} ViT", 
         config=config
     )
 
@@ -174,30 +170,22 @@ def main(args):
     pbar = trange(0, args.epochs, desc="Training Epochs", postfix={})
     for epoch in pbar:
         train_stats = train_one_epoch(model, train_loader,
-                                      optimizer, device, epoch, loss_scaler,
+                                      optimizer, device, epoch,
                                       args=args)
-        
-        run.log(train_stats)
+        test_stats = test(model, test_loader, device, args=args)
 
-        postfix = train_stats
-
-        if epoch % 20 == 0:
-            test_stats = test(model, test_loader, device, args=args)
-            run.log(test_stats)
-
-            postfix = {**train_stats, **test_stats}
-
+        postfix = {**train_stats, **test_stats}
+        run.log(postfix)
         pbar.set_postfix(postfix)
 
-    torch.save({"model_args": model_args,
+    torch.save({"model_str": model_dict[args.model],
+                "model_args": model_args,
                 "model_state_dict": model.state_dict()},
-                f"{args.save_path}/mae_base_200e")
+                f"{args.save_path}/mae_{args.model}_{args.epochs}e")
 
         
 
 if __name__ == '__main__':
     args = get_args_parser()
     args = args.parse_args()
-    # if args.output_dir:
-    #     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     main(args)

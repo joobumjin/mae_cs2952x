@@ -86,8 +86,7 @@ def get_test_loader(batch_size, cache_dir = ""):
 
 
     test_loader = DataLoader(test, batch_size=batch_size, shuffle=False)
-    return test_loader
-
+    return test_loader 
 
 # def build_dataset(is_train, args):
 #     transform = build_transform(is_train, args)

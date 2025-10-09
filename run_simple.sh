@@ -17,4 +17,4 @@ conda activate mae
 cd /users/bjoo2/code/mae_cs2952x
 
 echo "Pretraining MAE"
-python3 simple_pretrain.py --batch_size 64
+python3 simple_pretrain.py --batch_size 32 --model large
