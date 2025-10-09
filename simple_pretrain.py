@@ -62,7 +62,7 @@ def get_args_parser():
 
 def train_one_epoch(model: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int,
+                    device: torch.device, epoch: int, loss_scaler,
                     args=None):
     model.train(True)
 
@@ -78,7 +78,8 @@ def train_one_epoch(model: torch.nn.Module,
 
         samples = samples.to(device, non_blocking=True)
 
-        loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
+        with torch.amp.autocast('cuda'):
+            loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
 
         loss_value = loss.item()
 
@@ -86,7 +87,7 @@ def train_one_epoch(model: torch.nn.Module,
             print("Loss is {}, stopping training".format(loss_value))
             sys.exit(1)
 
-        loss.backward()
+        loss_scaler(loss, optimizer, parameters=model.parameters(), update_grad=True)
 
         optimizer.zero_grad()
 
@@ -152,6 +153,7 @@ def main(args):
     model.to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
+    loss_scaler = NativeScaler()
     
     config = {
         "Model": args.model,
@@ -170,7 +172,7 @@ def main(args):
     pbar = trange(0, args.epochs, desc="Training Epochs", postfix={})
     for epoch in pbar:
         train_stats = train_one_epoch(model, train_loader,
-                                      optimizer, device, epoch,
+                                      optimizer, device, epoch, loss_scaler,
                                       args=args)
         test_stats = test(model, test_loader, device, args=args)
 
