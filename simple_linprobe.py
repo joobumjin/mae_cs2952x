@@ -4,6 +4,7 @@ import numpy as np
 from tqdm import trange
 
 import torch
+import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 
 import wandb
@@ -63,7 +64,7 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
 
     for samples in data_loader:
         samples["image"] = samples["image"].to(device)
-        samples["label"] = samples["label"].to(device)
+        samples["label"] = F.one_hot(samples["label"], num_classes=10).to(device)
 
         embeds, _, _ = model.forward_encoder(samples["image"], 0)
         loss, preds = probe(embeds, samples["label"])
