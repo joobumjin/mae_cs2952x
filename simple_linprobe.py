@@ -21,7 +21,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser('MAE pre-training', add_help=False)
     
     parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--epochs', default=100, type=int)
+    parser.add_argument('--epochs', default=50, type=int)
     parser.add_argument('--data_path', default="users/bjoo2/data/bjoo2/mae")
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -75,7 +75,7 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
         correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"])
 
         metrics["Train Loss"].update(loss.item())
-        metrics["Train Accuracy"].update(correct_preds)
+        metrics["Train Accuracy"].update(correct_preds, n = len(samples["label"]))
 
         lr = optimizer.param_groups[0]["lr"]
         metrics["lr"].update(lr)
