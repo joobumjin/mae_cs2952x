@@ -21,7 +21,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser('MAE pre-training', add_help=False)
     
     parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--epochs', default=50, type=int)
+    parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--data_path', default="users/bjoo2/data/bjoo2/mae")
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -68,8 +68,6 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
 
         embeds, _, _ = model.forward_encoder(samples["image"], 0)
         loss, preds = probe(embeds, samples["label"])
-
-        print(preds.shape)
 
         loss.backward()
         optimizer.zero_grad()
@@ -172,7 +170,7 @@ def objective(trial, args, model, model_args):
         train_stats = train_one_epoch(model, probe, 
                                       train_loader, optimizer, 
                                       device)
-        test_stats = test(model, test_loader, device)
+        test_stats = test(model, probe, test_loader, device)
 
         postfix = {**train_stats, **test_stats}
         run.log(postfix)
