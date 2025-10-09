@@ -158,7 +158,7 @@ def objective(trial, args, model, model_args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE FineTune", 
-        name=f"Test MAE - {model_args["size"]} ViT, {opts["optimizer"]}", 
+        name=f"Test MAE - {model_args["size"]} ViT, {opt_args["optimizer"]}", 
         config=config
     )
 
