@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 
 from timm.models.vision_transformer import PatchEmbed, Block
-from timm.models.layers import trunc_normal_
+from timm.layers import trunc_normal_
 
 from util.pos_embed import get_2d_sincos_pos_embed
 

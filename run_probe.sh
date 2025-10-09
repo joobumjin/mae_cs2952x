@@ -4,7 +4,7 @@
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -t 4:00:00
-#SBATCH --mem=16g
+#SBATCH --mem=8g
 
 # Load a CUDA module
 module load cuda
