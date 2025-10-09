@@ -249,7 +249,7 @@ def mae_vit_huge_patch14_dec512d8b(**kwargs):
 class LinearProbe(torch.nn.Module):
     def __init__(self, in_dim = 1024, out_dim = 10, num_layers = 3, moco_init = 0, pre_bn = 0):
         super().__init__()
-
+        num_patches = 257
         self.input_dim = in_dim
         self.output_dim = out_dim
 
@@ -259,10 +259,11 @@ class LinearProbe(torch.nn.Module):
         first_emb = 128
         second_emb = 32
 
-        layers = [] if pre_bn == 0 else [torch.nn.BatchNorm1d(self.input_dim, affine=False, eps=1e-6)]
-        if num_layers <= 1: layers += [nn.Linear(self.input_dim, self.output_dim)]
+        layers = [nn.Flatten()] 
+        if pre_bn == 1: layers += [torch.nn.BatchNorm1d(num_patches * self.input_dim, affine=False, eps=1e-6)]
+        if num_layers <= 1: layers += [nn.Linear(num_patches * self.input_dim, self.output_dim)]
         else:
-            layers += [nn.Linear(self.input_dim, first_emb), nn.LeakyReLU()]
+            layers += [nn.Linear(num_patches * self.input_dim, first_emb), nn.LeakyReLU()]
             if num_layers == 2:
                 layers += [nn.Linear(first_emb, self.output_dim)]
             else:
