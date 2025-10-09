@@ -96,7 +96,9 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
 
         with torch.no_grad():
             embeds, _, _ = model.forward_encoder(samples["image"], 0)
+            print(embeds.shape)
             loss, preds = probe(embeds, samples["label"])
+            print(preds.shape)
 
         metrics["Test Loss"].update(loss.item())
 
