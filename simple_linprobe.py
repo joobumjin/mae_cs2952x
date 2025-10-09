@@ -122,6 +122,7 @@ def objective(trial, args, model, model_args):
     train_loader = get_train_loader(**loader_args)
     test_loader = get_test_loader(**loader_args)
 
+    for param in model.parameters(): param.requires_grad = False
     model.to(device)
 
     input_shapes = {"mae_vit_base_patch16": 768, "mae_vit_large_patch16": 1024, "mae_vit_huge_patch14": 1280}
