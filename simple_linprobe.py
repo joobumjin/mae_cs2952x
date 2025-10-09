@@ -66,7 +66,8 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
         samples["image"] = samples["image"].to(device)
         samples["label"] =samples["label"].to(device)
 
-        embeds, _, _ = model.forward_encoder(samples["image"], 0)
+        with torch.no_grad():
+            embeds, _, _ = model.forward_encoder(samples["image"], 0)
         loss, preds = probe(embeds[:, 0, :], samples["label"])
 
         loss.backward()
@@ -96,7 +97,7 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
 
         with torch.no_grad():
             embeds, _, _ = model.forward_encoder(samples["image"], 0)
-            loss, preds = probe(embeds, samples["label"])
+            loss, preds = probe(embeds[:,0,:], samples["label"])
 
         metrics["Test Loss"].update(loss.item())
 
