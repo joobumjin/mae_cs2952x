@@ -50,7 +50,7 @@ def load_model(save_fp):
     return model, model_args
 
 
-def train_one_epoch(model: torch.nn.Module, probe: torch.nn.module,
+def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device):
     model.eval()
