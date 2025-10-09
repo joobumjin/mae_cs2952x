@@ -199,7 +199,7 @@ def objective(trial, args, model, model_args):
     for epoch in pbar:
         train_stats = train_one_epoch(model, probe, 
                                       train_loader, optimizer, 
-                                      device, epoch, train_cache_file)
+                                      device, train_cache_file)
         test_stats = test(model, probe, test_loader, device, test_cache_file)
 
         postfix = {**train_stats, **test_stats}
