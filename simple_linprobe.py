@@ -68,7 +68,6 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
     cached = os.path.exists(cache_file)
     cache = torch.load(cache_file) if cached else []
 
-    
     for ind, samples in enumerate(data_loader):
         samples["image"] = samples["image"].to(device)
         samples["label"] =samples["label"].to(device)
@@ -79,7 +78,7 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
                 embeds = embeds[:, 0, :]
                 cache.append(embeds)
             else:
-                embeds = cache[ind].to(device)
+                embeds = cache[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
 
         loss, preds = probe(embeds, samples["label"])
 
@@ -94,7 +93,7 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
         lr = optimizer.param_groups[0]["lr"]
         metrics["lr"].update(lr)
 
-    if not cached: torch.save(cache, cache_file)
+    if not cached: torch.save(torch.cat(cache, dim=0), cache_file)
 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
@@ -119,7 +118,7 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
                 embeds = embeds[:, 0, :]
                 cache.append(embeds)
             else:
-                embeds = cache[ind].to(device)
+                embeds = cache[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
             loss, preds = probe(embeds, samples["label"])
 
         metrics["Test Loss"].update(loss.item())
@@ -127,7 +126,7 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
         correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"])
         metrics["Test Accuracy"].update(correct_preds, n = len(samples["label"]))
 
-    if not cached: torch.save(cache, cache_file)
+    if not cached: torch.save(torch.cat(cache, dim=0), cache_file)
 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
