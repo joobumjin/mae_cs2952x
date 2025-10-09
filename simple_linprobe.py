@@ -101,7 +101,7 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
         metrics["Test Loss"].update(loss.item())
 
         correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"])
-        metrics["Test Accuracy"].update(correct_preds)
+        metrics["Test Accuracy"].update(correct_preds, n = len(samples["label"]))
 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
