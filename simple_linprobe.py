@@ -123,7 +123,7 @@ def objective(trial, args, model, model_args):
 
     model.to(device)
 
-    input_shapes = {"base": 768, "large": 1024, "huge": 1280}
+    input_shapes = {"mae_vit_base_patch16": 768, "mae_vit_large_patch16": 1024, "mae_vit_huge_patch14": 1280}
 
     probe_args = {
         "in_dim": input_shapes[model_args["size"]],
@@ -146,7 +146,6 @@ def objective(trial, args, model, model_args):
     }
 
     config = {
-        "Model": args.model,
         **opt_args,
         **loader_args, 
         **probe_args,
