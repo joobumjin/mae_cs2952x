@@ -1,5 +1,6 @@
 import argparse
 from typing import Iterable
+import os
 import numpy as np
 from tqdm import trange
 
@@ -34,6 +35,8 @@ def get_args_parser():
     
     parser.add_argument('--save_path', default="users/bjoo2/data/bjoo2/mae/weights")
     parser.add_argument('--save_file', default="mae_large_scaled_50e")
+    
+    parser.add_argument('--cache_path', default="users/bjoo2/data/bjoo2/mae/cache")
     return parser
 
 def load_model(save_fp):
@@ -54,7 +57,7 @@ def load_model(save_fp):
 
 def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
-                    device: torch.device):
+                    device: torch.device, cache_file: str):
     model.eval()
     probe.train()
 
@@ -62,13 +65,23 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
 
     metrics = {"Train Loss": misc.SmoothedValue(), "Train Accuracy": misc.SmoothedValue(), "lr": misc.SmoothedValue()}
 
-    for samples in data_loader:
+    cached = os.path.exists(cache_file)
+    cache = torch.load(cache_file) if cached else []
+
+    
+    for ind, samples in enumerate(data_loader):
         samples["image"] = samples["image"].to(device)
         samples["label"] =samples["label"].to(device)
 
         with torch.no_grad():
-            embeds, _, _ = model.forward_encoder(samples["image"], 0)
-        loss, preds = probe(embeds[:, 0, :], samples["label"])
+            if not cached: 
+                embeds, _, _ = model.forward_encoder(samples["image"], 0)
+                embeds = embeds[:, 0, :]
+                cache.append(embeds)
+            else:
+                embeds = cache[ind].to(device)
+
+        loss, preds = probe(embeds, samples["label"])
 
         loss.backward()
         optimizer.zero_grad()
@@ -81,28 +94,40 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
         lr = optimizer.param_groups[0]["lr"]
         metrics["lr"].update(lr)
 
+    if not cached: torch.save(torch.tensor(cache), cache_file)
+
     return {k: meter.global_avg for k, meter in metrics.items()}
 
-def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, device: torch.device):
+def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, device: torch.device, cache_file: str):
     
     model.eval()
     probe.eval()
 
     metrics = {"Test Loss": misc.SmoothedValue(), "Test Accuracy": misc.SmoothedValue()}
 
-    for samples in data_loader:
+    cached = os.path.exists(cache_file)
+    cache = torch.load(cache_file) if cached else []
+
+    for ind, samples in enumerate(data_loader):
         samples["image"] = samples["image"].to(device)
         samples["label"] = samples["label"].to(device)
 
 
         with torch.no_grad():
-            embeds, _, _ = model.forward_encoder(samples["image"], 0)
-            loss, preds = probe(embeds[:,0,:], samples["label"])
+            if not cached: 
+                embeds, _, _ = model.forward_encoder(samples["image"], 0)
+                embeds = embeds[:, 0, :]
+                cache.append(embeds)
+            else:
+                embeds = cache[ind].to(device)
+            loss, preds = probe(embeds, samples["label"])
 
         metrics["Test Loss"].update(loss.item())
 
         correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"])
         metrics["Test Accuracy"].update(correct_preds, n = len(samples["label"]))
+
+    if not cached: torch.save(torch.tensor(cache), cache_file)
 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
@@ -166,12 +191,16 @@ def objective(trial, args, model, model_args):
         config=config
     )
 
+    os.makedirs(args.cache_path, exist_ok=True)
+    train_cache_file = f"{args.cache_path}/{args.save_file}_train"
+    test_cache_file = f"{args.cache_path}/{args.save_file}_test"
+
     pbar = trange(0, args.epochs, desc="Probe Training Epochs", postfix={})
-    for _ in pbar:
+    for epoch in pbar:
         train_stats = train_one_epoch(model, probe, 
                                       train_loader, optimizer, 
-                                      device)
-        test_stats = test(model, probe, test_loader, device)
+                                      device, epoch, train_cache_file)
+        test_stats = test(model, probe, test_loader, device, test_cache_file)
 
         postfix = {**train_stats, **test_stats}
         run.log(postfix)
