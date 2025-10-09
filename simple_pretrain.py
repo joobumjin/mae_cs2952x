@@ -150,6 +150,12 @@ def main(args):
     }
 
     model = models_mae.__dict__[model_dict[args.model]](**model_args)
+
+    torch.save({"model_str": model_dict[args.model],
+                "model_args": model_args,
+                "model_state_dict": model.state_dict()},
+                f"{args.save_path}/TEST_mae_{args.model}_{args.epochs}e")
+    
     model.to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
