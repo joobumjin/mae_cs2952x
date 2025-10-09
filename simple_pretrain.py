@@ -164,7 +164,7 @@ def main(args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE Pretrain", 
-        name=f"MAE - {args.model} ViT", 
+        name=f"MAE - {args.model} ViT - Scaled", 
         config=config
     )
 
@@ -183,7 +183,7 @@ def main(args):
     torch.save({"model_str": model_dict[args.model],
                 "model_args": model_args,
                 "model_state_dict": model.state_dict()},
-                f"{args.save_path}/mae_{args.model}_{args.epochs}e")
+                f"{args.save_path}/mae_{args.model}_scaled_{args.epochs}e")
 
         
 
