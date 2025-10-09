@@ -161,7 +161,7 @@ def main(args):
 
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
-        project=f"mae-test", 
+        project=f"MAE Pretrain", 
         name=f"MAE - {args.model} ViT", 
         config=config
     )
