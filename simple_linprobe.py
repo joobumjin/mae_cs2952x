@@ -94,7 +94,7 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
         lr = optimizer.param_groups[0]["lr"]
         metrics["lr"].update(lr)
 
-    if not cached: torch.save(torch.stack(cache, dim = 0), cache_file)
+    if not cached: torch.save(cache, cache_file)
 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
@@ -127,7 +127,7 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
         correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"])
         metrics["Test Accuracy"].update(correct_preds, n = len(samples["label"]))
 
-    if not cached: torch.save(torch.stack(cache, dim = 0), cache_file)
+    if not cached: torch.save(cache, cache_file)
 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
