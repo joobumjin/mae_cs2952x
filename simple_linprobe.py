@@ -169,7 +169,7 @@ def objective(trial, args, model, model_args):
     }
 
     opt_args = {
-        "lr": 1e-3, # trial.suggest_float("learning_rate", 1e-4, 3e-3, step=1e-4),
+        "lr": 1e-4, # trial.suggest_float("learning_rate", 1e-4, 3e-3, step=1e-4),
         "optimizer": "AdamW", #trial.suggest_categorical("optimizer type", opts.keys())
     }
 
