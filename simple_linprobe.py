@@ -90,7 +90,7 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
             embeds = embeds[:, 0, :]
             labels = samples["label"]
             cache.append(embeds.detach().cpu())
-            cache.append(labels.detach().cpu())
+            cache_labels.append(labels.detach().cpu())
         else:
             embeds = cache[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
             labels = cache_labels[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
@@ -136,7 +136,7 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
                 embeds = embeds[:, 0, :]
                 labels = samples["label"]
                 cache.append(embeds.detach().cpu())
-                cache.append(labels.detach().cpu())
+                cache_labels.append(labels.detach().cpu())
             else:
                 embeds = cache[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
                 labels = cache_labels[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
