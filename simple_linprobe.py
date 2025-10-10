@@ -193,6 +193,8 @@ def objective(trial, args, model, model_args):
         "optimizer": "LARS", #trial.suggest_categorical("optimizer type", opts.keys())
     }
 
+    args.lr = opt_args["lr"]
+
     config = {
         **opt_args,
         **loader_args, 
