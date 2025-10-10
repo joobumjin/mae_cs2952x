@@ -17,4 +17,4 @@ conda activate mae
 cd /users/bjoo2/code/mae_cs2952x
 
 echo "FineTuning MAE"
-python3 simple_linprobe.py --batch_size 1024
+python3 simple_linprobe.py --batch_size 256 --lr 1e-4
