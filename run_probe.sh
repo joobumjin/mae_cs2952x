@@ -4,7 +4,7 @@
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -t 4:00:00
-#SBATCH --mem=8g
+#SBATCH --mem=16g
 
 # Load a CUDA module
 module load cuda
@@ -17,4 +17,4 @@ conda activate mae
 cd /users/bjoo2/code/mae_cs2952x
 
 echo "FineTuning MAE"
-python3 simple_linprobe.py --batch_size 512 
+python3 simple_linprobe.py --batch_size 2048 

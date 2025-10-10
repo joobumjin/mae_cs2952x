@@ -33,6 +33,8 @@ def get_args_parser():
     # Optimizer parameters
     parser.add_argument('--weight_decay', type=float, default=0.05,
                         help='weight decay (default: 0.05)')
+    parser.add_argument('--warmup_epochs', type=int, default=10, metavar='N',
+                        help='epochs to warmup LR')
     
     parser.add_argument('--save_path', default="/users/bjoo2/scratch/mae/weights")
     parser.add_argument('--save_file', default="mae_large_scaled_40e")
@@ -57,8 +59,8 @@ def load_model(save_fp):
 
 
 def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
-                    data_loader: Iterable, optimizer: torch.optim.Optimizer,
-                    device: torch.device, cache_file: str):
+                    data_loader: Iterable, optimizer: torch.optim.Optimizer, epoch: int,
+                    device: torch.device, cache_file: str, args):
     model.eval()
     probe.train(True)
 
@@ -67,34 +69,44 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
     metrics = {"Train Loss": misc.SmoothedValue(), "Train Accuracy": misc.SmoothedValue(), "lr": misc.SmoothedValue()}
 
     cached = os.path.exists(cache_file)
-    cache = torch.load(cache_file) if cached else []
+    if cached:
+        load = torch.load(cache_file)
+        cache = load["image"]
+        cache_labels = load["label"]
+    else: cache, cache_labels = [], []
 
     for ind, samples in enumerate(data_loader):
-        if not cached: samples["image"] = samples["image"].to(device)
-        samples["label"] = samples["label"].to(device)
+        if not cached: 
+            samples["image"] = samples["image"].to(device)
+            samples["label"] = samples["label"].to(device)
+
+        lr_sched.adjust_learning_rate(optimizer, ind / len(data_loader) + epoch, args)
 
         # with torch.no_grad():
         if not cached: 
             embeds, _, _ = model.forward_encoder(samples["image"], 0)
             embeds = embeds[:, 0, :]
+            labels = samples["label"]
             cache.append(embeds)
+            cache.append(labels)
         else:
             embeds = cache[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
+            labels = cache_labels[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
 
-        loss, preds = probe(embeds, samples["label"])
+        loss, preds = probe(embeds, labels)
 
         loss.backward()
         optimizer.step()
 
-        correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"]).item()
+        correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == labels).item()
 
-        metrics["Train Loss"].update(loss.item(), n = len(samples["label"]))
-        metrics["Train Accuracy"].update(correct_preds, n = len(samples["label"]))
+        metrics["Train Loss"].update(loss.item(), n = len(labels))
+        metrics["Train Accuracy"].update(correct_preds, n = len(labels))
 
         lr = optimizer.param_groups[0]["lr"]
         metrics["lr"].update(lr)
 
-    if not cached: torch.save(torch.cat(cache, dim=0), cache_file)
+    if not cached: torch.save({"image": torch.cat(cache, dim=0), "label": torch.cat(cache_labels, dim=0)}, cache_file)
 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
@@ -105,27 +117,35 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
     metrics = {"Test Loss": misc.SmoothedValue(), "Test Accuracy": misc.SmoothedValue()}
 
     cached = os.path.exists(cache_file)
-    cache = torch.load(cache_file) if cached else []
+    if cached:
+        load = torch.load(cache_file)
+        cache = load["image"]
+        cache_labels = load["label"]
+    else: cache, cache_labels = [], []
 
     for ind, samples in enumerate(data_loader):
-        samples["image"] = samples["image"].to(device)
-        samples["label"] = samples["label"].to(device)
+        if not cached: 
+            samples["image"] = samples["image"].to(device)
+            samples["label"] = samples["label"].to(device)
 
         with torch.no_grad():
             if not cached: 
                 embeds, _, _ = model.forward_encoder(samples["image"], 0)
                 embeds = embeds[:, 0, :]
+                labels = samples["label"]
                 cache.append(embeds)
+                cache.append(labels)
             else:
                 embeds = cache[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
-            loss, preds = probe(embeds, samples["label"])
+                labels = cache_labels[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
+            loss, preds = probe(embeds, labels)
 
-        metrics["Test Loss"].update(loss.item(), n = len(samples["label"]))
+        correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == labels).item()
 
-        correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"]).item()
-        metrics["Test Accuracy"].update(correct_preds, n = len(samples["label"]))
+        metrics["Test Loss"].update(loss.item(), n = len(labels))
+        metrics["Test Accuracy"].update(correct_preds, n = len(labels))
 
-    if not cached: torch.save(torch.cat(cache, dim=0), cache_file)
+    if not cached: torch.save({"image": torch.cat(cache, dim=0), "label": torch.cat(cache_labels, dim=0)}, cache_file)
 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
@@ -169,8 +189,8 @@ def objective(trial, args, model, model_args):
     }
 
     opt_args = {
-        "lr": 5e-4, # trial.suggest_float("learning_rate", 1e-4, 3e-3, step=1e-4),
-        "optimizer": "AdamW", #trial.suggest_categorical("optimizer type", opts.keys())
+        "lr": 0.1, # trial.suggest_float("learning_rate", 1e-4, 3e-3, step=1e-4),
+        "optimizer": "LARS", #trial.suggest_categorical("optimizer type", opts.keys())
     }
 
     config = {
@@ -186,7 +206,7 @@ def objective(trial, args, model, model_args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE FineTune", 
-        name=f"{model_args["size"]} ViTMAE, {probe_args["num_layers"]}D, {opt_args["optimizer"]}", 
+        name=f"{model_args["size"]} ViTMAE, Pub Config, {opt_args["optimizer"]}", 
         config=config
     )
 
@@ -195,10 +215,10 @@ def objective(trial, args, model, model_args):
     test_cache_file = f"{args.cache_path}/{args.save_file}_test"
 
     pbar = trange(0, args.epochs, desc="Probe Training Epochs", postfix={})
-    for _ in pbar:
+    for epoch in pbar:
         train_stats = train_one_epoch(model, probe, 
-                                      train_loader, optimizer, 
-                                      device, train_cache_file)
+                                      train_loader, optimizer, epoch,
+                                      device, train_cache_file, args)
         test_stats = test(model, probe, test_loader, device, test_cache_file)
 
         postfix = {**train_stats, **test_stats}
