@@ -240,6 +240,7 @@ def main(args):
         model, model_args = load_model(f"{args.save_path}/{args.save_file}")
     else:
         model = recon.prepare_model(f"{args.save_path}/{args.save_file}", 'mae_vit_large_patch16')
+        model_args = {"size": "mae_vit_large_patch16"}
 
     # study = optuna.create_study(study_name=f"mae_probe", direction="minimize")
     # study.set_metric_names(["Test Accuracy"])
