@@ -213,7 +213,7 @@ def objective(trial, args, model, model_args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE FineTune", 
-        name=f"Large ViTMAE, 3Dense, {opt_args["optimizer"]}", 
+        name=f"FAIR ViTMAE, 3Dense, {opt_args["optimizer"]}", 
         config=config
     )
 
