@@ -33,10 +33,10 @@ def get_args_parser():
     parser.add_argument('--weight_decay', type=float, default=0.05,
                         help='weight decay (default: 0.05)')
     
-    parser.add_argument('--save_path', default="users/bjoo2/data/bjoo2/mae/weights")
+    parser.add_argument('--save_path', default="users/bjoo2/scratch/mae/weights")
     parser.add_argument('--save_file', default="mae_large_scaled_50e")
     
-    parser.add_argument('--cache_path', default="users/bjoo2/data/bjoo2/mae/cache")
+    parser.add_argument('--cache_path', default="users/bjoo2/scratch/mae/cache")
     return parser
 
 def load_model(save_fp):

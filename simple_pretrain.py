@@ -54,7 +54,7 @@ def get_args_parser():
     parser.add_argument('--warmup_epochs', type=int, default=40, metavar='N',
                         help='epochs to warmup LR')
     
-    parser.add_argument('--save_path', default="users/bjoo2/data/bjoo2/mae/weights")
+    parser.add_argument('--save_path', default="users/bjoo2/scratch/mae/weights")
     return parser
 
 # --------------------------------------------------------
