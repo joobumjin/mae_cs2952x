@@ -98,13 +98,6 @@ def main():
     assert train_image.shape == (256, 256, 3)
     assert test_image.shape == (256, 256, 3)
 
-    # normalize by ImageNet mean and std
-    train_image -= imagenet_mean
-    train_image /= imagenet_std
-
-    test_image -= imagenet_mean
-    test_image /= imagenet_std
-
     model, model_args = load_model(f"/users/bjoo2/scratch/mae/weights/mae_large_scaled_40e")
 
     run_one_image(train_image, model, "train")
