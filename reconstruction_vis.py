@@ -94,6 +94,7 @@ def main():
 
     train_image = next(iter(train_loader))["image"][0]
     test_image = next(iter(test_loader))["image"][0]
+    print(train_image.shape)
 
     assert train_image.shape == (256, 256, 3)
     assert test_image.shape == (256, 256, 3)
