@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu --gres=gpu:1 --output=mae.out
+#SBATCH --partition=gpu --gres=gpu:1 --output=mae_aug.out
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -t 5:00:00
@@ -17,4 +17,4 @@ conda activate mae
 cd /users/bjoo2/code/mae_cs2952x
 
 echo "Pretraining MAE"
-python3 simple_pretrain.py --batch_size 32 --model large
+python3 simple_pretrain.py --batch_size 64 --model large

@@ -135,7 +135,7 @@ def main(args):
         "batch_size": args.batch_size,
         "cache_dir": args.data_path
     }
-    train_loader = get_train_loader(**loader_args)
+    train_loader = get_train_loader(hard_aug = True, **loader_args)
     test_loader = get_test_loader(**loader_args)
     
     model_args = {
@@ -171,7 +171,7 @@ def main(args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE Pretrain", 
-        name=f"MAE - {args.model} ViT - Scaled", 
+        name=f"MAE - {args.model} ViT - More Augmentation", 
         config=config
     )
 
@@ -190,7 +190,7 @@ def main(args):
     torch.save({"model_str": model_dict[args.model],
                 "model_args": model_args,
                 "model_state_dict": model.state_dict()},
-                f"{args.save_path}/mae_{args.model}_scaled_{args.epochs}e")
+                f"{args.save_path}/mae_{args.model}_aug_{args.epochs}e")
 
         
 

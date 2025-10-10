@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu --gres=gpu:1 --output=probe.out
+#SBATCH --partition=gpu --gres=gpu:1 
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -t 4:00:00
@@ -17,4 +17,4 @@ conda activate mae
 cd /users/bjoo2/code/mae_cs2952x
 
 echo "FineTuning MAE"
-python3 simple_linprobe.py --batch_size 1024 
+python3 simple_linprobe.py --batch_size 512 

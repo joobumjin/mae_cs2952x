@@ -49,7 +49,7 @@ def get_train_loader(batch_size, cache_dir = ""):
     
     return train_loader
 
-def get_train_loader_dist(batch_size, world_size, rank, cache_dir = ""):
+def get_train_loader_dist(batch_size, world_size, rank, cache_dir = "", hard_aug = False):
     
     train = load_dataset("matthieulel/galaxy10_decals", split="train", cache_dir = cache_dir)
 
@@ -58,11 +58,18 @@ def get_train_loader_dist(batch_size, world_size, rank, cache_dir = ""):
                                        rank=rank, 
                                        shuffle=True)
 
-    transform_train = transforms.Compose([transforms.RandomResizedCrop(256, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
-                                          transforms.RandomHorizontalFlip(),
-                                          transforms.ToTensor(),
-                                          transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-
+    if hard_aug:
+        transform_train = transforms.Compose([transforms.RandomResizedCrop(256, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
+                                              transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5.)),
+                                              transforms.RandomRotation(degrees=(0, 180)),
+                                              transforms.RandomHorizontalFlip(),
+                                              transforms.ToTensor(),
+                                              transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    else:
+        transform_train = transforms.Compose([transforms.RandomResizedCrop(256, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
+                                              transforms.RandomHorizontalFlip(),
+                                              transforms.ToTensor(),
+                                              transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
     train = train.with_transform(lambda data: t_func(data, transform_train))
 
