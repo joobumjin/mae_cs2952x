@@ -98,7 +98,6 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
     return {k: meter.global_avg for k, meter in metrics.items()}
 
 def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, device: torch.device, cache_file: str):
-    
     model.eval()
     probe.eval()
 
@@ -110,7 +109,6 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
     for ind, samples in enumerate(data_loader):
         samples["image"] = samples["image"].to(device)
         samples["label"] = samples["label"].to(device)
-
 
         with torch.no_grad():
             if not cached: 
@@ -186,7 +184,7 @@ def objective(trial, args, model, model_args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE FineTune", 
-        name=f"Test MAE - {model_args["size"]} ViT, {opt_args["optimizer"]}", 
+        name=f"{model_args["size"]} ViTMAE, {opt_args["optimizer"]}", 
         config=config
     )
 
