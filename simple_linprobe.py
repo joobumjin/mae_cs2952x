@@ -18,6 +18,7 @@ from util.lars import LARS
 from util.data import get_train_loader, get_test_loader
 
 import models_mae
+import reconstruction_vis as recon
 
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE pre-training', add_help=False)
@@ -39,6 +40,8 @@ def get_args_parser():
     parser.add_argument('--save_file', default="mae_large_scaled_40e")
     
     parser.add_argument('--cache_path', default="/users/bjoo2/scratch/mae/cache")
+
+    parser.add_argument('--fb_weights', default=False, type=bool)
     return parser
 
 def load_model(save_fp):
@@ -233,7 +236,10 @@ def objective(trial, args, model, model_args):
 
 
 def main(args):
-    model, model_args = load_model(f"{args.save_path}/{args.save_file}")
+    if not args.fb_weights:
+        model, model_args = load_model(f"{args.save_path}/{args.save_file}")
+    else:
+        model = recon.prepare_model(f"{args.save_path}/{args.save_file}", 'mae_vit_large_patch16')
 
     # study = optuna.create_study(study_name=f"mae_probe", direction="minimize")
     # study.set_metric_names(["Test Accuracy"])
