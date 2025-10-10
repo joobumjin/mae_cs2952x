@@ -3,7 +3,7 @@ from typing import Iterable
 import os
 import time
 import numpy as np
-from tqdm import trange
+from tqdm import trange, tqdm
 
 import torch
 import torch.nn.functional as F
@@ -61,6 +61,23 @@ def load_model(save_fp):
     
     return model, model_args
 
+def build_cache(model: torch.nn.Module, loader: Iterable, device: torch.device, cache_file: str, args):
+    model.eval()
+    
+    cache, cache_labels = [], []
+    
+    for samples in tqdm(enumerate(loader), desc="building cache"):
+        samples["image"] = samples["image"].to(device)
+        samples["label"] = samples["label"].to(device)
+
+        with torch.no_grad():
+            embeds, _, _ = model.forward_encoder(samples["image"], 0)
+            embeds = embeds[:, 0, :] if args.mean_pool else torch.mean(embeds[:, 1:, :], dim = 1)
+            labels = samples["label"]
+            cache.append(embeds.detach().cpu())
+            cache_labels.append(labels.detach().cpu())
+
+    torch.save({"image": torch.cat(cache, dim=0), "label": torch.cat(cache_labels, dim=0)}, cache_file)
 
 def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer, epoch: int,
@@ -175,6 +192,7 @@ def objective(trial, args, model, model_args):
     train_loader = get_train_loader(**loader_args)
     test_loader = get_test_loader(**loader_args)
 
+
     for param in model.parameters(): param.requires_grad = False
     model.to(device)
 
@@ -225,6 +243,9 @@ def objective(trial, args, model, model_args):
     pooled = "_meanpooled" if args.mean_pool else ""
     train_cache_file = f"{args.cache_path}/{args.save_file}_train{pooled}"
     test_cache_file = f"{args.cache_path}/{args.save_file}_test{pooled}"
+    
+    build_cache(model, train_loader, device, train_cache_file, args)
+    build_cache(model, test_loader, device, test_cache_file, args)
 
     pbar = trange(0, args.epochs, desc="Probe Training Epochs", postfix={})
     for epoch in pbar:
