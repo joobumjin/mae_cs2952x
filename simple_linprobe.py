@@ -66,7 +66,7 @@ def build_cache(model: torch.nn.Module, loader: Iterable, device: torch.device, 
     
     cache, cache_labels = [], []
     
-    for samples in tqdm(enumerate(loader), desc="building cache"):
+    for samples in tqdm(loader, desc="building cache"):
         samples["image"] = samples["image"].to(device)
         samples["label"] = samples["label"].to(device)
 
