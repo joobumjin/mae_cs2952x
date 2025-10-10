@@ -57,15 +57,17 @@ def get_train_loader(batch_size, cache_dir = "", hard_aug = False, img_size = 25
     
     return train_loader
 
-def get_test_loader(batch_size, cache_dir = ""):
+def get_test_loader(batch_size, cache_dir = "", img_size = 256):
     test = load_dataset("matthieulel/galaxy10_decals", split="test", cache_dir = cache_dir)
+    
+    transformations = [transforms.ToTensor(),
+                       transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]
 
-    transform_test = transforms.Compose([transforms.ToTensor(),
-                                         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    if img_size != 256: transformations = [transforms.RandomCrop(size=img_size)] + transformations
 
+    transform_test = transforms.Compose(transformations)
 
     test = test.with_transform(lambda data: t_func(data, transform_test))
-
 
     test_loader = DataLoader(test, batch_size=batch_size, shuffle=False)
     return test_loader 
