@@ -156,8 +156,8 @@ def objective(trial, args, model, model_args):
         "in_dim": input_shapes[model_args["size"]],
         "out_dim": 10,
         "num_layers": 1, # trial.suggest_int("probe layers", 1, 3),
-        "moco_init": 0, #trial.suggest_int("mocov3-esque init", 0, 1),
-        "pre_bn": 0, #trial.suggest_int("pre_batchnorm", 0, 1),
+        "moco_init": 1, #trial.suggest_int("mocov3-esque init", 0, 1),
+        "pre_bn": 1, #trial.suggest_int("pre_batchnorm", 0, 1),
     }
     probe = models_mae.LinearProbe(**probe_args)
     for param in probe.parameters(): param.requires_grad = True
@@ -186,7 +186,7 @@ def objective(trial, args, model, model_args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE FineTune", 
-        name=f"{model_args["size"]} ViTMAE, {probe_args["num_layers"]}D, {opt_args["optimizer"]}", 
+        name=f"{model_args["size"]} ViTMAE, {probe_args["num_layers"]}D w/ Config, {opt_args["optimizer"]}", 
         config=config
     )
 
