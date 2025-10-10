@@ -41,7 +41,7 @@ def get_args_parser():
     
     parser.add_argument('--cache_path', default="/users/bjoo2/scratch/mae/cache")
 
-    parser.add_argument('--fb_weights', default=False, type=bool)
+    parser.add_argument('--fb_weights', action="store_true", type=bool)
     return parser
 
 def load_model(save_fp):

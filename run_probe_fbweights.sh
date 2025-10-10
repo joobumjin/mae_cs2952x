@@ -17,4 +17,4 @@ conda activate mae
 cd /users/bjoo2/code/mae_cs2952x
 
 echo "FineTuning MAE"
-python3 simple_linprobe.py --batch_size 512 --epochs 75 --save_path /users/bjoo2/scratch/mae/fb_weights --save_file mae_visualize_vit_large.pth --cache_path /users/bjoo2/scratch/mae/fb_weights/cache
+python3 simple_linprobe.py --batch_size 512 --epochs 75 --save_path /users/bjoo2/scratch/mae/fb_weights --save_file mae_visualize_vit_large.pth --cache_path /users/bjoo2/scratch/mae/fb_weights/cache --fb_weights
