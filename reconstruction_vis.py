@@ -92,19 +92,18 @@ def main():
     train_loader = get_train_loader(**loader_args)
     test_loader = get_test_loader(**loader_args)
 
-    train_image = next(iter(train_loader))["image"][0].permute(1,2,0)
-    test_image = next(iter(test_loader))["image"][0].permute(1,2,0)
-    print(train_image.shape)
+    train_image = next(iter(train_loader))["image"][0].permute(1,2,0).numpy()
+    test_image = next(iter(test_loader))["image"][0].permute(1,2,0).numpy()
 
     assert train_image.shape == (256, 256, 3)
     assert test_image.shape == (256, 256, 3)
 
     # normalize by ImageNet mean and std
-    train_image = train_image - imagenet_mean
-    train_image = train_image / imagenet_std
+    train_image -= imagenet_mean
+    train_image /= imagenet_std
 
-    test_image = test_image - imagenet_mean
-    test_image = test_image / imagenet_std
+    test_image -= imagenet_mean
+    test_image /= imagenet_std
 
     model, model_args = load_model(f"/users/bjoo2/scratch/mae/weights/mae_large_scaled_40e")
 
