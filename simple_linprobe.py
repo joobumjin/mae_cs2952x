@@ -64,17 +64,14 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
 
     optimizer.zero_grad()
 
-    metrics = {"Train Loss": misc.SmoothedValue(), "Train Accuracy": misc.SmoothedValue(), "lr": misc.SmoothedValue(), 
-               "Prediction Time": misc.SmoothedValue(), "Post Batch Time": misc.SmoothedValue()}
+    metrics = {"Train Loss": misc.SmoothedValue(), "Train Accuracy": misc.SmoothedValue(), "lr": misc.SmoothedValue()}
 
     cached = os.path.exists(cache_file)
     cache = torch.load(cache_file) if cached else []
 
     for ind, samples in enumerate(data_loader):
-        samples["image"] = samples["image"].to(device)
-        samples["label"] =samples["label"].to(device)
-
-        start = time.time()
+        if not cached: samples["image"] = samples["image"].to(device)
+        samples["label"] = samples["label"].to(device)
 
         # with torch.no_grad():
         if not cached: 
@@ -86,8 +83,6 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
 
         loss, preds = probe(embeds, samples["label"])
 
-        pred_time = time.time()
-
         loss.backward()
         optimizer.step()
 
@@ -98,10 +93,6 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
 
         lr = optimizer.param_groups[0]["lr"]
         metrics["lr"].update(lr)
-
-        post_batch_time = time.time()
-        metrics["Prediction Time"].update(pred_time - start)
-        metrics["Post Batch Time"].update(post_batch_time - pred_time)
 
     if not cached: torch.save(torch.cat(cache, dim=0), cache_file)
 
