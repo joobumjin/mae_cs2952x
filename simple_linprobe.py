@@ -73,7 +73,9 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
         load = torch.load(cache_file)
         cache = load["image"]
         cache_labels = load["label"]
-    else: cache, cache_labels = [], []
+    else: 
+        print("Building Cache")
+        cache, cache_labels = [], []
 
     for ind, samples in enumerate(data_loader):
         if not cached: 
@@ -87,8 +89,8 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
             embeds, _, _ = model.forward_encoder(samples["image"], 0)
             embeds = embeds[:, 0, :]
             labels = samples["label"]
-            cache.append(embeds)
-            cache.append(labels)
+            cache.append(embeds.detach().cpu())
+            cache.append(labels.detach().cpu())
         else:
             embeds = cache[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
             labels = cache_labels[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
@@ -133,8 +135,8 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
                 embeds, _, _ = model.forward_encoder(samples["image"], 0)
                 embeds = embeds[:, 0, :]
                 labels = samples["label"]
-                cache.append(embeds)
-                cache.append(labels)
+                cache.append(embeds.detach().cpu())
+                cache.append(labels.detach().cpu())
             else:
                 embeds = cache[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
                 labels = cache_labels[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
