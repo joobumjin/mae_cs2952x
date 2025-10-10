@@ -169,6 +169,7 @@ def objective(trial, args, model, model_args):
         "pre_bn": 0, #trial.suggest_int("pre_batchnorm", 0, 1),
     }
     probe = models_mae.LinearProbe(**probe_args)
+    for param in probe.parameters(): param.requires_grad = True
     probe.to(device)
 
     opts = {
