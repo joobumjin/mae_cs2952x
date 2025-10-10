@@ -92,8 +92,8 @@ def main():
     train_loader = get_train_loader(**loader_args)
     test_loader = get_test_loader(**loader_args)
 
-    train_image = next(iter(train_loader))["image"][0]
-    test_image = next(iter(test_loader))["image"][0]
+    train_image = next(iter(train_loader))["image"][0].permute(1,2,0)
+    test_image = next(iter(test_loader))["image"][0].permute(1,2,0)
     print(train_image.shape)
 
     assert train_image.shape == (256, 256, 3)
