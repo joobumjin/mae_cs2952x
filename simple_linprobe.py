@@ -168,6 +168,8 @@ def objective(trial, args, model, model_args):
         "batch_size": args.batch_size,
         "cache_dir": args.data_path
     }
+    if args.fb_weights: loader_args["img_size"] = 224
+    
     train_loader = get_train_loader(**loader_args)
     test_loader = get_test_loader(**loader_args)
 
