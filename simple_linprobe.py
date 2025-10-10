@@ -84,7 +84,9 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
         else:
             embeds = cache[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
 
-        loss, preds = probe(embeds, samples["label"])
+        # loss, preds = probe(embeds, samples["label"])
+        preds = probe(embeds)
+        loss = probe.cce_loss(preds, samples["label"])
 
         pred_time = time.time()
 

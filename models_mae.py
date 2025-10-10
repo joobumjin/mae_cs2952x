@@ -278,11 +278,9 @@ class LinearProbe(torch.nn.Module):
         self.linear = nn.Sequential(*layers, nn.Softmax(dim = -1))
         
         self.cce_loss = nn.CrossEntropyLoss()
-        
-    def forward(self, embeds, labels):
-        preds = self.linear(embeds)
-        
-        return self.cce_loss(preds, labels), preds
+
+    def forward(self, embeds):
+        return self.linear(embeds)
 
 # set recommended archs
 mae_vit_base_patch16 = mae_vit_base_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
