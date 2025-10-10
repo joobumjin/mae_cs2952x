@@ -1,6 +1,7 @@
 import argparse
 from typing import Iterable
 import os
+import time
 import numpy as np
 from tqdm import trange
 
@@ -63,7 +64,8 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
 
     optimizer.zero_grad()
 
-    metrics = {"Train Loss": misc.SmoothedValue(), "Train Accuracy": misc.SmoothedValue(), "lr": misc.SmoothedValue()}
+    metrics = {"Train Loss": misc.SmoothedValue(), "Train Accuracy": misc.SmoothedValue(), "lr": misc.SmoothedValue(), 
+               "Prediction Time": misc.SmoothedValue(), "Post Batch Time": misc.SmoothedValue()}
 
     cached = os.path.exists(cache_file)
     cache = torch.load(cache_file) if cached else []
@@ -71,6 +73,8 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
     for ind, samples in enumerate(data_loader):
         samples["image"] = samples["image"].to(device)
         samples["label"] =samples["label"].to(device)
+
+        start = time.time()
 
         with torch.no_grad():
             if not cached: 
@@ -82,16 +86,22 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
 
         loss, preds = probe(embeds, samples["label"])
 
+        pred_time = time.time()
+
         loss.backward()
         optimizer.zero_grad()
 
-        correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"])
+        correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"]).item()
 
         metrics["Train Loss"].update(loss.item())
         metrics["Train Accuracy"].update(correct_preds, n = len(samples["label"]))
 
         lr = optimizer.param_groups[0]["lr"]
         metrics["lr"].update(lr)
+
+        post_batch_time = time.time()
+        metrics["Prediction Time"].update(pred_time - start)
+        metrics["Post Batch Time"].update(post_batch_time - pred_time)
 
     if not cached: torch.save(torch.cat(cache, dim=0), cache_file)
 
@@ -121,7 +131,7 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
 
         metrics["Test Loss"].update(loss.item())
 
-        correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"])
+        correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"]).item()
         metrics["Test Accuracy"].update(correct_preds, n = len(samples["label"]))
 
     if not cached: torch.save(torch.cat(cache, dim=0), cache_file)
@@ -193,13 +203,14 @@ def objective(trial, args, model, model_args):
     test_cache_file = f"{args.cache_path}/{args.save_file}_test"
 
     pbar = trange(0, args.epochs, desc="Probe Training Epochs", postfix={})
-    for epoch in pbar:
+    for _ in pbar:
         train_stats = train_one_epoch(model, probe, 
                                       train_loader, optimizer, 
                                       device, train_cache_file)
         test_stats = test(model, probe, test_loader, device, test_cache_file)
 
         postfix = {**train_stats, **test_stats}
+        print(postfix)
         run.log(postfix)
         pbar.set_postfix(postfix)
 
