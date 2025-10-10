@@ -23,7 +23,7 @@ def get_args_parser():
     
     parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--epochs', default=50, type=int)
-    parser.add_argument('--data_path', default="users/bjoo2/data/bjoo2/mae")
+    parser.add_argument('--data_path', default="/users/bjoo2/data/bjoo2/mae")
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=0, type=int)
@@ -33,10 +33,10 @@ def get_args_parser():
     parser.add_argument('--weight_decay', type=float, default=0.05,
                         help='weight decay (default: 0.05)')
     
-    parser.add_argument('--save_path', default="users/bjoo2/scratch/mae/weights")
+    parser.add_argument('--save_path', default="/users/bjoo2/scratch/mae/weights")
     parser.add_argument('--save_file', default="mae_large_scaled_50e")
     
-    parser.add_argument('--cache_path', default="users/bjoo2/scratch/mae/cache")
+    parser.add_argument('--cache_path', default="/users/bjoo2/scratch/mae/cache")
     return parser
 
 def load_model(save_fp):

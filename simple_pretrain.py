@@ -27,7 +27,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser('MAE pre-training', add_help=False)
     
     parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--data_path', default="users/bjoo2/data/bjoo2/mae")
+    parser.add_argument('--data_path', default="/users/bjoo2/data/bjoo2/mae")
     parser.add_argument('--epochs', default=40, type=int)
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -54,7 +54,7 @@ def get_args_parser():
     parser.add_argument('--warmup_epochs', type=int, default=40, metavar='N',
                         help='epochs to warmup LR')
     
-    parser.add_argument('--save_path', default="users/bjoo2/scratch/mae/weights")
+    parser.add_argument('--save_path', default="/users/bjoo2/scratch/mae/weights")
     return parser
 
 # --------------------------------------------------------
