@@ -259,7 +259,7 @@ class LinearProbe(torch.nn.Module):
         first_emb = 128
         second_emb = 32
 
-        layers = [nn.Flatten()] 
+        layers = [] 
         if pre_bn == 1: layers += [torch.nn.BatchNorm1d(num_patches * self.input_dim, affine=False, eps=1e-6)]
         if num_layers <= 1: layers += [nn.Linear(num_patches * self.input_dim, self.output_dim)]
         else:
@@ -275,7 +275,7 @@ class LinearProbe(torch.nn.Module):
             for layer in layers: 
                 if (isinstance(layer, nn.Linear)): trunc_normal_(layer.weight, std=0.01)
 
-        self.linear = nn.Sequential(*layers, nn.Softmax(dim = -1))
+        self.linear = nn.Sequential(*layers)
         
         self.cce_loss = nn.CrossEntropyLoss()
 
