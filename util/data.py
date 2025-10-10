@@ -33,30 +33,9 @@ def collate(data):
     labels = torch.tensor(labels)
     return {"images": images, "labels": labels}
 
-def get_train_loader(batch_size, cache_dir = ""):
+def get_train_loader(batch_size, cache_dir = "", hard_aug = False):
     
     train = load_dataset("matthieulel/galaxy10_decals", split="train", cache_dir = cache_dir)
-
-    transform_train = transforms.Compose([transforms.RandomResizedCrop(256, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
-                                          transforms.RandomHorizontalFlip(),
-                                          transforms.ToTensor(),
-                                          transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-
-
-    train = train.with_transform(lambda data: t_func(data, transform_train))
-
-    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
-    
-    return train_loader
-
-def get_train_loader_dist(batch_size, world_size, rank, cache_dir = "", hard_aug = False):
-    
-    train = load_dataset("matthieulel/galaxy10_decals", split="train", cache_dir = cache_dir)
-
-    sampler_train = DistributedSampler(train, 
-                                       num_replicas=world_size, 
-                                       rank=rank, 
-                                       shuffle=True)
 
     if hard_aug:
         transform_train = transforms.Compose([transforms.RandomResizedCrop(256, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
@@ -71,14 +50,10 @@ def get_train_loader_dist(batch_size, world_size, rank, cache_dir = "", hard_aug
                                               transforms.ToTensor(),
                                               transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
+
     train = train.with_transform(lambda data: t_func(data, transform_train))
 
-    train_loader = DataLoader(
-        train, 
-        batch_size=batch_size,
-        sampler=sampler_train,
-        shuffle = True,
-    )
+    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
     
     return train_loader
 
