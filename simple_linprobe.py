@@ -32,7 +32,7 @@ def get_args_parser():
     # Model parameters
 
     # Optimizer parameters
-    parser.add_argument('--weight_decay', type=float, default=0)
+    parser.add_argument('--weight_decay', type=float, default=0.05)
     parser.add_argument('--warmup_epochs', type=int, default=10, metavar='N',
                         help='epochs to warmup LR')
     
@@ -235,7 +235,7 @@ def objective(trial, args, model, model_args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE FineTune", 
-        name=f"ViTMAE Mean Pooled, {probe_args["num_layers"]}Dense, {opt_args["optimizer"]}", 
+        name=f"ViTMAE, {probe_args["num_layers"]}Dense, {opt_args["optimizer"]}, WD", 
         config=config
     )
 
