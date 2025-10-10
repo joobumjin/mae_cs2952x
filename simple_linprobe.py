@@ -34,7 +34,7 @@ def get_args_parser():
                         help='weight decay (default: 0.05)')
     
     parser.add_argument('--save_path', default="/users/bjoo2/scratch/mae/weights")
-    parser.add_argument('--save_file', default="mae_large_scaled_50e")
+    parser.add_argument('--save_file', default="mae_large_scaled_40e")
     
     parser.add_argument('--cache_path', default="/users/bjoo2/scratch/mae/cache")
     return parser
