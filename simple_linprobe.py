@@ -88,7 +88,7 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
 
         correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"]).item()
 
-        metrics["Train Loss"].update(loss.item())
+        metrics["Train Loss"].update(loss.item(), n = len(samples["label"]))
         metrics["Train Accuracy"].update(correct_preds, n = len(samples["label"]))
 
         lr = optimizer.param_groups[0]["lr"]
@@ -120,7 +120,7 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
                 embeds = cache[ind*data_loader.batch_size:(ind+1)*data_loader.batch_size].to(device)
             loss, preds = probe(embeds, samples["label"])
 
-        metrics["Test Loss"].update(loss.item())
+        metrics["Test Loss"].update(loss.item(), n = len(samples["label"]))
 
         correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"]).item()
         metrics["Test Accuracy"].update(correct_preds, n = len(samples["label"]))

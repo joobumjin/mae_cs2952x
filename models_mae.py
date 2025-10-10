@@ -277,7 +277,7 @@ class LinearProbe(torch.nn.Module):
 
         self.linear = nn.Sequential(*layers)
         
-        self.cce_loss = nn.CrossEntropyLoss()
+        self.cce_loss = nn.CrossEntropyLoss(reduction='sum')
 
     def pred(self, data):
         x = self.linear(data)
