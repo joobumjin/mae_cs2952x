@@ -31,8 +31,7 @@ def get_args_parser():
     # Model parameters
 
     # Optimizer parameters
-    parser.add_argument('--weight_decay', type=float, default=0.05,
-                        help='weight decay (default: 0.05)')
+    parser.add_argument('--weight_decay', type=float, default=0)
     parser.add_argument('--warmup_epochs', type=int, default=10, metavar='N',
                         help='epochs to warmup LR')
     
@@ -191,7 +190,7 @@ def objective(trial, args, model, model_args):
     }
 
     opt_args = {
-        "lr": 0.1, # trial.suggest_float("learning_rate", 1e-4, 3e-3, step=1e-4),
+        "lr": 1e-3, # trial.suggest_float("learning_rate", 1e-4, 3e-3, step=1e-4),
         "optimizer": "LARS", #trial.suggest_categorical("optimizer type", opts.keys())
     }
 
