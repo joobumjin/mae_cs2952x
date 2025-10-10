@@ -42,6 +42,8 @@ def get_args_parser():
     parser.add_argument('--cache_path', default="/users/bjoo2/scratch/mae/cache")
 
     parser.add_argument('--fb_weights', action="store_true")
+
+    parser.add_argument('--mean_pool', action="store_true")
     return parser
 
 def load_model(save_fp):
@@ -89,7 +91,7 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
         # with torch.no_grad():
         if not cached: 
             embeds, _, _ = model.forward_encoder(samples["image"], 0)
-            embeds = embeds[:, 0, :]
+            embeds = embeds[:, 0, :] if args.mean_pool else torch.mean(embeds[:, 1:, :], dim = 1)
             labels = samples["label"]
             cache.append(embeds.detach().cpu())
             cache_labels.append(labels.detach().cpu())
@@ -114,7 +116,7 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
-def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, device: torch.device, cache_file: str):
+def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, device: torch.device, cache_file: str, args):
     model.eval()
     probe.eval()
 
@@ -135,7 +137,7 @@ def test(model: torch.nn.Module, probe: torch.nn.Module, data_loader: Iterable, 
         with torch.no_grad():
             if not cached: 
                 embeds, _, _ = model.forward_encoder(samples["image"], 0)
-                embeds = embeds[:, 0, :]
+                embeds = embeds[:, 0, :] if args.mean_pool else torch.mean(embeds[:, 1:, :], dim = 1)
                 labels = samples["label"]
                 cache.append(embeds.detach().cpu())
                 cache_labels.append(labels.detach().cpu())
@@ -215,20 +217,21 @@ def objective(trial, args, model, model_args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE FineTune", 
-        name=f"FAIR ViTMAE, 1Dense, {opt_args["optimizer"]}", 
+        name=f"ViTMAE Mean Pooled, 1Dense, {opt_args["optimizer"]}", 
         config=config
     )
 
     os.makedirs(args.cache_path, exist_ok=True)
-    train_cache_file = f"{args.cache_path}/{args.save_file}_train"
-    test_cache_file = f"{args.cache_path}/{args.save_file}_test"
+    pooled = "_meanpooled" if args.mean_pool else ""
+    train_cache_file = f"{args.cache_path}/{args.save_file}_train{pooled}"
+    test_cache_file = f"{args.cache_path}/{args.save_file}_test{pooled}"
 
     pbar = trange(0, args.epochs, desc="Probe Training Epochs", postfix={})
     for epoch in pbar:
         train_stats = train_one_epoch(model, probe, 
                                       train_loader, optimizer, epoch,
                                       device, train_cache_file, args)
-        test_stats = test(model, probe, test_loader, device, test_cache_file)
+        test_stats = test(model, probe, test_loader, device, test_cache_file, args)
 
         postfix = {**train_stats, **test_stats}
         run.log(postfix)
