@@ -91,7 +91,7 @@ def train_one_epoch(model: torch.nn.Module, probe: torch.nn.Module,
         pred_time = time.time()
 
         loss.backward()
-        optimizer.zero_grad()
+        optimizer.step()
 
         correct_preds = torch.sum(torch.argmax(preds.detach(), dim=-1) == samples["label"]).item()
 
