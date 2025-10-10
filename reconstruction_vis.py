@@ -22,16 +22,23 @@ def show_image(image, title=''):
     plt.axis('off')
     return
 
-def prepare_model(chkpt_dir, arch='mae_vit_large_patch16'):
-    # build model
-    model = getattr(models_mae, arch)()
-    # load model
-    checkpoint = torch.load(chkpt_dir, map_location='cpu')
-    msg = model.load_state_dict(checkpoint['model'], strict=False)
-    print(msg)
-    return model
+def load_model(save_fp):
+    checkpoint = torch.load(save_fp, weights_only=True)
 
-def run_one_image(img, model):
+    model_str = checkpoint["model_str"]
+    model_class = models_mae.__dict__[model_str]
+
+    model_args = checkpoint["model_args"]
+    model = model_class(**model_args)
+
+    model.load_state_dict(checkpoint["model_state_dict"])
+
+    model_args["size"] = model_str
+    
+    return model, model_args
+
+
+def run_one_image(img, model, split="train"):
     x = torch.tensor(img)
 
     # make it a batch-like
@@ -39,7 +46,7 @@ def run_one_image(img, model):
     x = torch.einsum('nhwc->nchw', x)
 
     # run MAE
-    loss, y, mask = model(x.float(), mask_ratio=0.75)
+    _, y, mask = model(x.float(), mask_ratio=0.75)
     y = model.unpatchify(y)
     y = torch.einsum('nchw->nhwc', y).detach().cpu()
 
@@ -72,7 +79,7 @@ def run_one_image(img, model):
     plt.subplot(1, 4, 4)
     show_image(im_paste[0], "reconstruction + visible")
 
-    plt.savefig("/users/bjoo2/scratch/mae/vis/large_pretrain.png")
+    plt.savefig(f"/users/bjoo2/scratch/mae/vis/large_pretrain_{split}.png")
 
     plt.close()
 
@@ -92,9 +99,16 @@ def main():
     assert test_image.shape == (256, 256, 3)
 
     # normalize by ImageNet mean and std
-    img = img - imagenet_mean
-    img = img / imagenet_std
+    train_image = train_image - imagenet_mean
+    train_image = train_image / imagenet_std
+
+    test_image = test_image - imagenet_mean
+    test_image = test_image / imagenet_std
 
     model, model_args = load_model(f"/users/bjoo2/scratch/mae/weights/mae_large_scaled_40e")
 
-    run_one_image(img, model)
+    run_one_image(train_image, model, "train")
+    run_one_image(test_image, model, "test")
+
+if __name__ == '__main__':
+    main()
