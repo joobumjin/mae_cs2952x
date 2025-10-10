@@ -176,7 +176,7 @@ def objective(trial, args, model, model_args):
     probe_args = {
         "in_dim": input_shapes[model_args["size"]],
         "out_dim": 10,
-        "num_layers": 1, # trial.suggest_int("probe layers", 1, 3),
+        "num_layers": 3, # trial.suggest_int("probe layers", 1, 3),
         "moco_init": 1, #trial.suggest_int("mocov3-esque init", 0, 1),
         "pre_bn": 1, #trial.suggest_int("pre_batchnorm", 0, 1),
     }
@@ -210,7 +210,7 @@ def objective(trial, args, model, model_args):
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
         project=f"MAE FineTune", 
-        name=f"Large ViTMAE, {opt_args["optimizer"]}", 
+        name=f"Large ViTMAE, 3Dense, {opt_args["optimizer"]}", 
         config=config
     )
 
