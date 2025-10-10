@@ -244,8 +244,10 @@ def objective(trial, args, model, model_args):
     train_cache_file = f"{args.cache_path}/{args.save_file}_train{pooled}"
     test_cache_file = f"{args.cache_path}/{args.save_file}_test{pooled}"
     
-    build_cache(model, train_loader, device, train_cache_file, args)
-    build_cache(model, test_loader, device, test_cache_file, args)
+    cached = os.path.exists(train_cache_file)
+    if not cached:
+        build_cache(model, train_loader, device, train_cache_file, args)
+        build_cache(model, test_loader, device, test_cache_file, args)
 
     pbar = trange(0, args.epochs, desc="Probe Training Epochs", postfix={})
     for epoch in pbar:
