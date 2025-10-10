@@ -177,24 +177,23 @@ def objective(trial, args, model, model_args):
         "in_dim": input_shapes[model_args["size"]],
         "out_dim": 10,
         "num_layers": 1, # trial.suggest_int("probe layers", 1, 3),
-        "moco_init": 0, #trial.suggest_int("mocov3-esque init", 0, 1),
-        "pre_bn": 0, #trial.suggest_int("pre_batchnorm", 0, 1),
+        "moco_init": 1, #trial.suggest_int("mocov3-esque init", 0, 1),
+        "pre_bn": 1, #trial.suggest_int("pre_batchnorm", 0, 1),
     }
     probe = models_mae.LinearProbe(**probe_args)
     for param in probe.parameters(): param.requires_grad = True
     probe.to(device)
 
     opts = {
-        "AdamW": (torch.optim.AdamW, {"betas": (0.9, 0.95)}),
-        "LARS": (LARS, {"weight_decay": args.weight_decay})
+        "AdamW": (torch.optim.AdamW, {"lr": 1e-4, "betas": (0.9, 0.95)}),
+        "LARS": (LARS, {"lr": 0.1, "weight_decay": args.weight_decay}),
+        "SGD": (torch.optim.SGD, {"lr": 0.01, "weight_decay": args.weight_decay})
     }
 
     opt_args = {
-        "lr": 1e-3, # trial.suggest_float("learning_rate", 1e-4, 3e-3, step=1e-4),
-        "optimizer": "LARS", #trial.suggest_categorical("optimizer type", opts.keys())
+        "optimizer": "AdamW", #trial.suggest_categorical("optimizer type", opts.keys())
     }
 
-    args.lr = opt_args["lr"]
 
     config = {
         **opt_args,
@@ -203,8 +202,9 @@ def objective(trial, args, model, model_args):
         **model_args
     }
 
-    (opt_class, misc_args) = opts[opt_args["optimizer"]]
-    optimizer = opt_class(probe.parameters(), lr=opt_args["lr"], **misc_args)
+    (opt_class, opt_kwargs) = opts[opt_args["optimizer"]]
+    args.lr = opt_kwargs["lr"]
+    optimizer = opt_class(probe.parameters(), **opt_kwargs)
 
     run = wandb.init(
         entity="bumjin_joo-brown-university", 
