@@ -27,6 +27,9 @@ This code will automatically generate a W&B run, so make sure to disable that fu
 
 To run the linear probe on FAIR's pretrained weights, you can submit the slurm request `run_probe_fbweights.sh`.
 
+There is additional Optuna code that has been commented out to enable automated hyperparameter search. 
+However, the computation time for a single linear probe model was surprisingly long, and so the code was not used.
+
 ### Reconstruction Visualization
 
 The code for reconstruction vis is within `reconstruction_vis.py` and can be run by either executing the file directly from terminal or by submitting `run_reconvis.sh`. 
