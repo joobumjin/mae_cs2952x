@@ -26,6 +26,7 @@ All of the linear probing routine is contained within `simple_linprobe.py` and c
 This code will automatically generate a W&B run, so make sure to disable that functionality if it is not desirable.
 
 To run the linear probe on FAIR's pretrained weights, you can submit the slurm request `run_probe_fbweights.sh`.
+This assumes that the weights are already downloaded at the path as specified by the arguments.
 
 There is additional Optuna code that has been commented out to enable automated hyperparameter search. 
 However, the computation time for a single linear probe model was surprisingly long, and so the code was not used.
