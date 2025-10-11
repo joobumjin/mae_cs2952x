@@ -1,3 +1,8 @@
+####
+# This code was directly repurposed from 
+# https://github.com/facebookresearch/mae
+####
+
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 
