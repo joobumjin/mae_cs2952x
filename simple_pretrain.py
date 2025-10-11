@@ -27,7 +27,8 @@ def get_args_parser():
     parser = argparse.ArgumentParser('MAE pre-training', add_help=False)
     
     parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--data_path', default="/users/bjoo2/data/bjoo2/mae")
+    parser.add_argument('--data_path', default="/users/bjoo2/data/bjoo2/mae",
+                        help="directory to which the data will be downloaded")
     parser.add_argument('--epochs', default=40, type=int)
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -54,7 +55,10 @@ def get_args_parser():
     parser.add_argument('--warmup_epochs', type=int, default=40, metavar='N',
                         help='epochs to warmup LR')
     
-    parser.add_argument('--save_path', default="/users/bjoo2/scratch/mae/weights")
+    parser.add_argument('--save_path', default="/users/bjoo2/scratch/mae/weights",
+                        help="directory to which the pretrained model weights should be saved")
+
+    parser.add_argument('--disable_wandb', action="store_true")
     return parser
 
 # --------------------------------------------------------
@@ -151,12 +155,6 @@ def main(args):
 
     model = models_mae.__dict__[model_dict[args.model]](**model_args)
 
-    print(f"saving test model")
-    torch.save({"model_str": model_dict[args.model],
-                "model_args": model_args,
-                "model_state_dict": model.state_dict()},
-                f"{args.save_path}/TEST_mae_{args.model}_{args.epochs}e")
-    
     model.to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
@@ -168,12 +166,14 @@ def main(args):
         **loader_args
     }
 
-    run = wandb.init(
-        entity="bumjin_joo-brown-university", 
-        project=f"MAE Pretrain", 
-        name=f"MAE - {args.model} ViT - More Augmentation", 
-        config=config
-    )
+    if args.disable_wandb: run = None
+    else:
+        run = wandb.init(
+            entity="bumjin_joo-brown-university", 
+            project=f"MAE Pretrain", 
+            name=f"MAE - {args.model} ViT - More Augmentation", 
+            config=config
+        )
 
     print(f"Start training for {args.epochs} epochs")
     pbar = trange(0, args.epochs, desc="Training Epochs", postfix={})
@@ -184,7 +184,7 @@ def main(args):
         test_stats = test(model, test_loader, device, args=args)
 
         postfix = {**train_stats, **test_stats}
-        run.log(postfix)
+        if run is not None: run.log(postfix)
         pbar.set_postfix(postfix)
 
     torch.save({"model_str": model_dict[args.model],

@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 
 import wandb
-import optuna
+# import optuna
 
 import util.misc as misc
 import util.lr_sched as lr_sched
@@ -36,14 +36,19 @@ def get_args_parser():
     parser.add_argument('--warmup_epochs', type=int, default=10, metavar='N',
                         help='epochs to warmup LR')
     
-    parser.add_argument('--save_path', default="/users/bjoo2/scratch/mae/weights")
-    parser.add_argument('--save_file', default="mae_large_scaled_40e")
+    parser.add_argument('--save_path', default="/users/bjoo2/scratch/mae/weights",
+                        help="directory from which the pretrained model weights should be loaded")
+    parser.add_argument('--save_file', default="mae_large_scaled_40e",
+                        help="name of file containing model weights in save path")
     
-    parser.add_argument('--cache_path', default="/users/bjoo2/scratch/mae/cache")
+    parser.add_argument('--cache_path', default="/users/bjoo2/scratch/mae/cache",
+                        help="directory to which model embeds will be cached")
 
     parser.add_argument('--fb_weights', action="store_true")
 
     parser.add_argument('--mean_pool', action="store_true")
+
+    parser.add_argument('--disable_wandb', action="store_true")
     return parser
 
 def load_model(save_fp):
@@ -232,12 +237,14 @@ def objective(trial, args, model, model_args):
     args.min_lr = 0.0
     optimizer = opt_class(probe.parameters(), **opt_kwargs)
 
-    run = wandb.init(
-        entity="bumjin_joo-brown-university", 
-        project=f"MAE FineTune", 
-        name=f"ViTMAE, {probe_args["num_layers"]}Dense, {opt_args["optimizer"]}, WD", 
-        config=config
-    )
+    if args.disable_wandb: run = None
+    else:
+        run = wandb.init(
+            entity="bumjin_joo-brown-university", 
+            project=f"MAE FineTune", 
+            name=f"ViTMAE, {probe_args["num_layers"]}Dense, {opt_args["optimizer"]}, WD", 
+            config=config
+        )
 
     os.makedirs(args.cache_path, exist_ok=True)
     pooled = "_meanpooled" if args.mean_pool else ""
@@ -257,7 +264,7 @@ def objective(trial, args, model, model_args):
         test_stats = test(model, probe, test_loader, device, test_cache_file, args)
 
         postfix = {**train_stats, **test_stats}
-        run.log(postfix)
+        if run is not None: run.log(postfix)
         pbar.set_postfix(postfix)
 
     return test_stats['Test Accuracy']
