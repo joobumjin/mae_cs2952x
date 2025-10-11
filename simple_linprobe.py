@@ -32,7 +32,7 @@ def get_args_parser():
     # Model parameters
 
     # Optimizer parameters
-    parser.add_argument('--weight_decay', type=float, default=0.05)
+    parser.add_argument('--weight_decay', type=float, default=0)
     parser.add_argument('--warmup_epochs', type=int, default=10, metavar='N',
                         help='epochs to warmup LR')
     
@@ -210,7 +210,7 @@ def objective(trial, args, model, model_args):
     probe.to(device)
 
     opts = {
-        "AdamW": (torch.optim.AdamW, {"lr": 1.5e-4, "betas": (0.9, 0.95)}),
+        "AdamW": (torch.optim.AdamW, {"lr": 1e-3, "betas": (0.9, 0.95)}),
         "LARS": (LARS, {"lr": 0.1, "weight_decay": args.weight_decay}),
         "SGD": (torch.optim.SGD, {"lr": 0.01, "weight_decay": args.weight_decay})
     }
