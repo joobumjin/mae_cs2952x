@@ -177,7 +177,7 @@ def objective(trial, args, model, model_args):
     device = torch.device(args.device)
 
     # fix the seed for reproducibility
-    seed = args.seed + misc.get_rank()
+    seed = args.seed
     torch.manual_seed(seed)
     np.random.seed(seed)
 
