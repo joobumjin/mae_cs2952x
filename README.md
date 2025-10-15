@@ -4,6 +4,17 @@ This repository is my implementation of FAIR's Masked AutoEncoder model!
 
 Many of the util files are diretly imported from the original MAE repository (found [here](https://github.com/facebookresearch/mae))
 
+The goal of this project was to probe the Self Sueprvised Learning properties of the MAE model. 
+
+The training regime consisted of pretraining on unlabeled images and then training a linear probe on the pretrained visual encoder to evaluate the information contained within pretrained representations.
+
+The MAE architecture is focused on learning to reconstruct images, given a partially masked out version of those images, using an autoencoder model. Below are two different reconstructions, one from the train split and one from the test split.
+
+![MAE Reconstructions](./assets/large_pretrain_train_crop.png)
+![MAE Reconstructions](./assets/large_pretrain_test_crop.png)
+
+In both cases, visual artifacts are present in the inferred patches. However, visual structures are still present through reconstructed patches, indicating that the pretrained model is learning to reconstruct visual patterns, rather than always predicting the background colour.
+
 ## Setup
 
 First, the conda environment can be created by calling
