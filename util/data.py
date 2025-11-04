@@ -22,7 +22,7 @@ def collate(data):
     labels = torch.tensor(labels)
     return {"images": images, "labels": labels}
 
-def get_train_loader(batch_size, cache_dir = "", hard_aug = False, img_size = 256):
+def get_train_loader(batch_size, cache_dir = "", hard_aug = False, img_size = 256, dist=False):
     
     train = load_dataset("matthieulel/galaxy10_decals", split="train", cache_dir = cache_dir)
 
@@ -39,14 +39,15 @@ def get_train_loader(batch_size, cache_dir = "", hard_aug = False, img_size = 25
                                               transforms.ToTensor(),
                                               transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-
     train = train.with_transform(lambda data: t_func(data, transform_train))
+    sampler = DistributedSampler(train) if dist else None
+    samplers = [sampler] if dist else []
 
-    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train, batch_size=batch_size, shuffle=(sampler is None), sampler=sampler)
     
-    return train_loader
+    return train_loader, *samplers
 
-def get_test_loader(batch_size, cache_dir = "", img_size = 256):
+def get_test_loader(batch_size, cache_dir = "", img_size = 256, dist=False):
     test = load_dataset("matthieulel/galaxy10_decals", split="test", cache_dir = cache_dir)
     
     transformations = [transforms.ToTensor(),
@@ -57,6 +58,8 @@ def get_test_loader(batch_size, cache_dir = "", img_size = 256):
     transform_test = transforms.Compose(transformations)
 
     test = test.with_transform(lambda data: t_func(data, transform_test))
+    sampler = DistributedSampler(test, shuffle=False) if dist else None
+    samplers = [sampler] if dist else []
 
-    test_loader = DataLoader(test, batch_size=batch_size, shuffle=False)
-    return test_loader 
+    test_loader = DataLoader(test, batch_size=batch_size, shuffle=False, sampler=sampler)
+    return test_loader, *samplers
