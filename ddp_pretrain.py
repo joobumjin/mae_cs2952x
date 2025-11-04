@@ -41,7 +41,6 @@ def get_args_parser():
     parser.add_argument("--local-rank", "--local_rank", type=int)
     parser.add_argument("--nnodes", type=int)
 
-
     parser.add_argument('--epochs', default=40, type=int)
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')

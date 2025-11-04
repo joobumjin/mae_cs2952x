@@ -2,7 +2,7 @@
 
 #SBATCH --partition=gpu --gres=gpu:2 --output=mae_ddp.out
 #SBATCH -N 2
-#SBATCH -n 1
+#SBATCH -n 2
 #SBATCH -t 1:00:00
 #SBATCH --mem=24g
 
