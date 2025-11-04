@@ -197,12 +197,6 @@ def main(args):
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
     loss_scaler = NativeScaler()
     
-    config = {
-        "Model": args.model,
-        "lr": args.lr,
-        **loader_args
-    }
-    
     loader_args = {
         "batch_size": args.batch_size,
         "cache_dir": args.data_path,
@@ -210,6 +204,12 @@ def main(args):
     }
     train_loader, train_sampler = get_train_loader(hard_aug = False, **loader_args)
     test_loader, test_sampler = get_test_loader(**loader_args)
+
+    config = {
+        "Model": args.model,
+        "lr": args.lr,
+        **loader_args
+    }
 
     if args.disable_wandb: run = None
     else:
