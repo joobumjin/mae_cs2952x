@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=norm-gpu --gres=gpu:2 --output=mae_ddp.out
+#SBATCH --gres=gpu:2 --output=mae_ddp.out
 #SBATCH -N 2
 #SBATCH -n 2
 #SBATCH -t 00:30:00
