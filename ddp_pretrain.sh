@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --partition=gpu --gres=gpu:1 --output=mae_ddp.out
-#SBATCH -N 2
-#SBATCH -n 2
-#SBATCH -t 00:30:00
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=1
+#SBATCH -t 00:15:00
 #SBATCH --mem=12g
 
 export MASTER_ADDR=$(scontrol show hostname $SLURM_NODELIST | head -n 1) 
