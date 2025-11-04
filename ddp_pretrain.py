@@ -78,16 +78,16 @@ def get_args_parser():
 # def setup(): 
 #   """Initialize the process group for distributed training. """
 #   dist.init_process_group(backend="nccl", init_method="env://") 
-def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
+# def setup(rank, world_size):
+#     os.environ['MASTER_ADDR'] = 'localhost'
+#     os.environ['MASTER_PORT'] = '12355'
 
-    # We want to be able to train our model on an `accelerator <https://pytorch.org/docs/stable/torch.html#accelerators>`__
-    # such as CUDA, MPS, MTIA, or XPU.
-    acc = torch.accelerator.current_accelerator()
-    backend = torch.distributed.get_default_backend_for_device(acc)
-    # initialize the process group
-    dist.init_process_group(backend, rank=rank, world_size=world_size)
+#     # We want to be able to train our model on an `accelerator <https://pytorch.org/docs/stable/torch.html#accelerators>`__
+#     # such as CUDA, MPS, MTIA, or XPU.
+#     acc = torch.accelerator.current_accelerator()
+#     backend = torch.distributed.get_default_backend_for_device(acc)
+#     # initialize the process group
+#     dist.init_process_group(backend, rank=rank, world_size=world_size)
 
 
 def cleanup(): 
@@ -167,13 +167,6 @@ def main(args):
 
     cudnn.benchmark = True
 
-    loader_args = {
-        "batch_size": args.batch_size,
-        "cache_dir": args.data_path,
-        "dist": True
-    }
-    train_loader, train_sampler = get_train_loader(hard_aug = True, **loader_args)
-    test_loader, test_sampler = get_test_loader(**loader_args)
 
     torch.accelerator.set_device_index(int(os.environ["LOCAL_RANK"]))
     acc = torch.accelerator.current_accelerator()
@@ -209,6 +202,14 @@ def main(args):
         "lr": args.lr,
         **loader_args
     }
+    
+    loader_args = {
+        "batch_size": args.batch_size,
+        "cache_dir": args.data_path,
+        "dist": True
+    }
+    train_loader, train_sampler = get_train_loader(hard_aug = False, **loader_args)
+    test_loader, test_sampler = get_test_loader(**loader_args)
 
     if args.disable_wandb: run = None
     else:
