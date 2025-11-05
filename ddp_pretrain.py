@@ -137,7 +137,7 @@ def train_one_epoch(model: torch.nn.Module,
 
     # gather the stats from all processes
     for _, meter in metrics.items():
-        meter.synchronize_between_processes()
+        meter.synchronize_between_processes(device_ids=[device_id])
 
     return {k: meter.global_avg for k, meter in metrics.items()}
 
@@ -159,7 +159,7 @@ def test(model: torch.nn.Module, data_loader: Iterable, sampler, device_id: int,
 
     # gather the stats from all processes
     for _, meter in metrics.items():
-        meter.synchronize_between_processes()
+        meter.synchronize_between_processes(device_ids=[device_id])
         
     return {k: meter.global_avg for k, meter in metrics.items()}
 

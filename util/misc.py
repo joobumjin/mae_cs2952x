@@ -43,14 +43,14 @@ class SmoothedValue(object):
         self.count += n
         self.total += value
 
-    def synchronize_between_processes(self):
+    def synchronize_between_processes(self, device_ids):
         """
         Warning: does not synchronize the deque!
         """
         if not dist.is_available() or not dist.is_initialized():
             return
         t = torch.tensor([self.count, self.total], dtype=torch.float64, device='cuda')
-        dist.barrier()
+        dist.barrier(device_ids=device_ids)
         dist.all_reduce(t)
         t = t.tolist()
         self.count = int(t[0])

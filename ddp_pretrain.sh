@@ -3,8 +3,8 @@
 #SBATCH --partition=gpu --gres=gpu:1 --output=mae_ddp.out
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
-#SBATCH -t 00:15:00
-#SBATCH --mem=12g
+#SBATCH -t 05:00:00
+#SBATCH --mem=8g
 
 export MASTER_ADDR=$(scontrol show hostname $SLURM_NODELIST | head -n 1) 
 export MASTER_PORT=12345 
@@ -26,6 +26,6 @@ srun torchrun \
         --rdzv_id=100 \
         --rdzv_backend=c10d \
         --rdzv_endpoint=$MASTER_ADDR:29400 \
-         ddp_pretrain.py --batch_size 64 --model large --epochs 2
+         ddp_pretrain.py --batch_size 64 --model large
 
 
