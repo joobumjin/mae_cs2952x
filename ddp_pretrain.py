@@ -136,6 +136,9 @@ def train_one_epoch(model: torch.nn.Module,
         metrics["lr"].update(lr)
 
     # gather the stats from all processes
+    for _, meter in metrics.items():
+        meter.synchronize_between_processes()
+
     return {k: meter.global_avg for k, meter in metrics.items()}
 
 def test(model: torch.nn.Module, data_loader: Iterable, sampler, device_id: int, args=None):
@@ -155,6 +158,9 @@ def test(model: torch.nn.Module, data_loader: Iterable, sampler, device_id: int,
         metrics["Test Loss"].update(loss.item())
 
     # gather the stats from all processes
+    for _, meter in metrics.items():
+        meter.synchronize_between_processes()
+        
     return {k: meter.global_avg for k, meter in metrics.items()}
 
 # --------------------------------------------------------
@@ -230,7 +236,7 @@ def main(args):
         test_stats = test(model, test_loader, test_sampler, device_id, args=args)
 
         postfix = {**train_stats, **test_stats}
-        if run is not None and rank == 0: run.log(postfix)
+        if rank == 0 and run is not None: run.log(postfix)
         pbar.set_postfix(postfix)
 
     # torch.save({"model_str": model_dict[args.model],
