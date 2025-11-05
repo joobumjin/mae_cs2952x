@@ -223,7 +223,7 @@ def main(args):
             run = wandb.init(
                 entity="bumjin_joo-brown-university", 
                 project=f"MAE DDP", 
-                name=f"MAE DDP Test", 
+                name=f"MAE DDP Sample Run", 
                 config=config
             )
 
