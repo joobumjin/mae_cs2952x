@@ -112,7 +112,6 @@ def train_one_epoch(model: torch.nn.Module,
         # we use a per iteration (instead of per epoch) lr scheduler
         lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args)
 
-        # samples = samples.to(device_id, non_blocking=True)
         samples = samples.to(device_id)
 
         with torch.amp.autocast('cuda'):
@@ -124,6 +123,7 @@ def train_one_epoch(model: torch.nn.Module,
             print("Loss is {}, stopping training".format(loss_value))
             sys.exit(1)
 
+        #sync point, applying grads calls all_reduce the grads across all devices
         loss_scaler(loss, optimizer, parameters=model.parameters(), update_grad=True)
 
         optimizer.zero_grad()
@@ -135,7 +135,7 @@ def train_one_epoch(model: torch.nn.Module,
         lr = optimizer.param_groups[0]["lr"]
         metrics["lr"].update(lr)
 
-    # gather the stats from all processes
+    # sync point: make sure that we gather all our metrics before returning
     for _, meter in metrics.items():
         meter.synchronize_between_processes(device_ids=[device_id])
 
@@ -149,7 +149,6 @@ def test(model: torch.nn.Module, data_loader: Iterable, sampler, device_id: int,
 
     for samples in data_loader:
         samples = samples["image"]
-        # samples = samples.to(device_id, non_blocking=True)
         samples = samples.to(device_id)
 
         with torch.no_grad():
@@ -157,7 +156,7 @@ def test(model: torch.nn.Module, data_loader: Iterable, sampler, device_id: int,
 
         metrics["Test Loss"].update(loss.item())
 
-    # gather the stats from all processes
+    # sync point: make sure that we gather all our metrics before returning
     for _, meter in metrics.items():
         meter.synchronize_between_processes(device_ids=[device_id])
         
@@ -200,6 +199,9 @@ def main(args):
     model = model.to(device_id)
     model = DDP(model, device_ids=[device_id])
 
+    # note that MAE calls real learning rate as base_learning_rate * (batch_size * world_size * num_steps_per_grad_app) / 256 w/ blr 1e-3
+    args.lr = args.lr * float(args.batch_size) * float(os.environ["WORLD_SIZE"]) / 256.0
+    #we can get a bigger effective batch size by simply accumulating grads for multiple batches :)
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
     loss_scaler = NativeScaler()
     

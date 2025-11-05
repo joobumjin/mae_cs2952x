@@ -26,6 +26,6 @@ srun torchrun \
         --rdzv_id=100 \
         --rdzv_backend=c10d \
         --rdzv_endpoint=$MASTER_ADDR:29400 \
-         ddp_pretrain.py --batch_size 64 --model large --epochs 15
+         ddp_pretrain.py --batch_size 64 --model large --epochs 50
 
 
